@@ -9,10 +9,10 @@ MOCKUPS:
 
 https://excalidraw.com/#room=8fd5edbd3dc8d019f2b7,l1CTB_eTqamJcjB-0FAZAQ
 
-Casos de uso
+Casos de uso:
 
 https://docs.google.com/document/d/18lrj1Eu7lIVF9J3BuKHSHggcuzbWSIxXGOIXdsvKoTc/edit?tab=t.0
 
-Actores
+Actores:
 
 https://docs.google.com/document/d/1XNMC8vHmskA5OjkIgs9R0YtFNa8JBHv-QOai8UG1BJg/edit?tab=t.0#heading=h.9m6ryyrg4dgd
