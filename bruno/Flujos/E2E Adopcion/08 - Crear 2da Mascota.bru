@@ -1,0 +1,41 @@
+meta {
+  name: 08 - Crear 2da Mascota
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/mascotas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Coco",
+    "especie": "Perro",
+    "raza": "Beagle",
+    "edad": 2,
+    "sexo": "Macho"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 201 Created", () => {
+    expect(status).to.equal(201);
+  });
+
+  test("La mascota nace Disponible", () => {
+    expect(body).to.have.property("estado").that.equals("Disponible");
+  });
+
+  bru.setEnvVar("mascotaId", body.id);
+}

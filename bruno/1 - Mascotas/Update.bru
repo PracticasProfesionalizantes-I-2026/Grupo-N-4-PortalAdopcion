@@ -1,0 +1,46 @@
+meta {
+  name: Update
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/mascotas/{{mascotaId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Rocky",
+    "especie": "Perro",
+    "raza": "Labrador",
+    "edad": 4,
+    "sexo": "Macho",
+    "estado": "Disponible"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("Actualiza la mascota indicada", () => {
+    expect(body).to.have.property("id").that.equals(bru.getEnvVar("mascotaId"));
+  });
+
+  test("Los campos modificados se reflejan", () => {
+    expect(body).to.have.property("nombre").that.equals("Rocky");
+    expect(body).to.have.property("edad").that.equals(4);
+    expect(body).to.have.property("estado").that.is.oneOf(["Disponible", "Reservada", "Adoptada"]);
+  });
+}

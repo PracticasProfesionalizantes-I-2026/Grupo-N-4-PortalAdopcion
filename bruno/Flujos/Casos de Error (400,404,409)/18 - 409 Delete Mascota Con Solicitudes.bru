@@ -1,0 +1,30 @@
+meta {
+  name: 18 - 409 Delete Mascota Con Solicitudes
+  type: http
+  seq: 18
+}
+
+delete {
+  url: {{baseUrl}}/mascotas/{{mascotaTomId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 409 Conflict", () => {
+    expect(status).to.equal(409);
+  });
+
+  test("El body de error tiene un mensaje", () => {
+    expect(body).to.have.property("message").that.is.a("string");
+    expect(body.message.length).to.be.greaterThan(0);
+  });
+}

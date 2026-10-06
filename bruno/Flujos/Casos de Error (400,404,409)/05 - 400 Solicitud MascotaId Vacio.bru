@@ -1,0 +1,37 @@
+meta {
+  name: 05 - 400 Solicitud MascotaId Vacio
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/solicitudes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "mascotaId": "00000000-0000-0000-0000-000000000000",
+    "adoptanteId": "{{adoptanteAnaId}}"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 400 Bad Request", () => {
+    expect(status).to.equal(400);
+  });
+
+  test("El body de error tiene un mensaje", () => {
+    expect(body).to.have.property("message").that.is.a("string");
+    expect(body.message.length).to.be.greaterThan(0);
+  });
+}

@@ -1,0 +1,40 @@
+meta {
+  name: 15 - 409 Adoptante DNI Duplicado
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/adoptantes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreCompleto": "Copia DNI",
+    "email": "copia.dni@mail.com",
+    "dni": "30111222",
+    "telefono": "1144448888",
+    "direccion": "Calle 21"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 409 Conflict", () => {
+    expect(status).to.equal(409);
+  });
+
+  test("El body de error tiene un mensaje", () => {
+    expect(body).to.have.property("message").that.is.a("string");
+    expect(body.message.length).to.be.greaterThan(0);
+  });
+}

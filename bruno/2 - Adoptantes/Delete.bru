@@ -1,0 +1,24 @@
+meta {
+  name: Delete
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/adoptantes/{{adoptanteId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+
+  test("Código de estado 204 No Content", () => {
+    expect(status).to.equal(204);
+  });
+}

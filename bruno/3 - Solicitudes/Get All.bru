@@ -1,0 +1,40 @@
+meta {
+  name: Get All
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/solicitudes
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("El body es un array", () => {
+    expect(body).to.be.an("array");
+  });
+
+  test("Cada solicitud cumple el shape de SolicitudResponseDTO", () => {
+    for (const solicitud of body) {
+      expect(solicitud).to.have.property("id").that.is.a("string");
+      expect(solicitud).to.have.property("mascotaId").that.is.a("string");
+      expect(solicitud).to.have.property("adoptanteId").that.is.a("string");
+      expect(solicitud).to.have.property("fechaSolicitud");
+      expect(solicitud).to.have.property("estado").that.is.oneOf(["Pendiente", "Aprobada", "Rechazada", "Cancelada"]);
+      expect(solicitud).to.have.property("motivo");
+    }
+  });
+}

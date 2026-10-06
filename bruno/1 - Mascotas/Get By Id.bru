@@ -1,0 +1,38 @@
+meta {
+  name: Get By Id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/mascotas/{{mascotaId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("Devuelve la mascota del id solicitado", () => {
+    expect(body).to.have.property("id").that.equals(bru.getEnvVar("mascotaId"));
+  });
+
+  test("Shape completo de MascotaResponseDTO", () => {
+    expect(body).to.have.property("nombre").that.is.a("string");
+    expect(body).to.have.property("especie").that.is.oneOf(["Perro", "Gato"]);
+    expect(body).to.have.property("edad").that.is.a("number");
+    expect(body).to.have.property("sexo").that.is.oneOf(["Macho", "Hembra"]);
+    expect(body).to.have.property("estado").that.is.oneOf(["Disponible", "Reservada", "Adoptada"]);
+    expect(body).to.have.property("fechaRegistro");
+  });
+}

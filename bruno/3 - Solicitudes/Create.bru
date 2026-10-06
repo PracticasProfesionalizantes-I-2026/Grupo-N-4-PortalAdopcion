@@ -1,0 +1,49 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/solicitudes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "mascotaId": "{{mascotaId}}",
+    "adoptanteId": "{{adoptanteId}}"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 201 Created", () => {
+    expect(status).to.equal(201);
+  });
+
+  test("Una solicitud nueva nace Pendiente", () => {
+    expect(body).to.have.property("estado").that.equals("Pendiente");
+  });
+
+  test("Referencia a mascota y adoptante correctos", () => {
+    expect(body).to.have.property("mascotaId").that.equals(bru.getEnvVar("mascotaId"));
+    expect(body).to.have.property("adoptanteId").that.equals(bru.getEnvVar("adoptanteId"));
+  });
+
+  test("Shape completo de SolicitudResponseDTO", () => {
+    expect(body).to.have.property("id").that.is.a("string");
+    expect(body).to.have.property("fechaSolicitud");
+    expect(body).to.have.property("motivo");
+  });
+
+  bru.setEnvVar("solicitudId", body.id);
+}

@@ -1,0 +1,54 @@
+meta {
+  name: Create
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/mascotas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Rocky",
+    "especie": "Perro",
+    "raza": "Labrador",
+    "edad": 3,
+    "sexo": "Macho"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 201 Created", () => {
+    expect(status).to.equal(201);
+  });
+
+  test("Devuelve el id de la mascota creada", () => {
+    expect(body).to.have.property("id").that.is.a("string");
+  });
+
+  test("Una mascota nueva siempre nace Disponible", () => {
+    expect(body).to.have.property("estado").that.equals("Disponible");
+  });
+
+  test("Shape completo de MascotaResponseDTO", () => {
+    expect(body).to.have.property("nombre").that.equals("Rocky");
+    expect(body).to.have.property("especie").that.equals("Perro");
+    expect(body).to.have.property("raza").that.equals("Labrador");
+    expect(body).to.have.property("edad").that.equals(3);
+    expect(body).to.have.property("sexo").that.equals("Macho");
+    expect(body).to.have.property("fechaRegistro");
+  });
+
+  bru.setEnvVar("mascotaId", body.id);
+}

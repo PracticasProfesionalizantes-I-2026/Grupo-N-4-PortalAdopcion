@@ -1,0 +1,24 @@
+meta {
+  name: Delete
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/mascotas/{{mascotaId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+
+  test("Código de estado 204 No Content", () => {
+    expect(status).to.equal(204);
+  });
+}

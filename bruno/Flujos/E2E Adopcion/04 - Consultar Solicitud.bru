@@ -1,0 +1,34 @@
+meta {
+  name: 04 - Consultar Solicitud
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/solicitudes/{{solicitudId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("La solicitud sigue Pendiente", () => {
+    expect(body).to.have.property("estado").that.equals("Pendiente");
+  });
+
+  test("Referencia las entidades creadas", () => {
+    expect(body).to.have.property("mascotaId").that.equals(bru.getEnvVar("mascotaId"));
+    expect(body).to.have.property("adoptanteId").that.equals(bru.getEnvVar("adoptanteId"));
+  });
+}

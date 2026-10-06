@@ -1,0 +1,40 @@
+meta {
+  name: 12 - 404 Update Adoptante Inexistente
+  type: http
+  seq: 12
+}
+
+put {
+  url: {{baseUrl}}/adoptantes/{{guidInexistente}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreCompleto": "Fantasma",
+    "email": "fantasma@mail.com",
+    "dni": "40999111",
+    "telefono": "1144445555",
+    "direccion": "Calle 99"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 404 Not Found", () => {
+    expect(status).to.equal(404);
+  });
+
+  test("El body de error tiene un mensaje", () => {
+    expect(body).to.have.property("message").that.is.a("string");
+    expect(body.message.length).to.be.greaterThan(0);
+  });
+}

@@ -1,0 +1,29 @@
+meta {
+  name: 05 - Consultar Mascota (Reservada)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/mascotas/{{mascotaId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("Al crear la solicitud la mascota pasa a Reservada (RN-01)", () => {
+    expect(body).to.have.property("estado").that.equals("Reservada");
+  });
+}

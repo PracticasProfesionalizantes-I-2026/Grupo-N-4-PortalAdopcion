@@ -1,0 +1,35 @@
+meta {
+  name: Get By Estado
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/mascotas?estado=Reservada
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("El body es un array", () => {
+    expect(body).to.be.an("array");
+  });
+
+  test("Todas las mascotas devueltas están Reservadas", () => {
+    for (const mascota of body) {
+      expect(mascota.estado).to.equal("Reservada");
+    }
+  });
+}

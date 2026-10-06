@@ -1,0 +1,38 @@
+meta {
+  name: 10 - Crear 2da Solicitud
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/solicitudes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "mascotaId": "{{mascotaId}}",
+    "adoptanteId": "{{adoptanteId}}"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 201 Created", () => {
+    expect(status).to.equal(201);
+  });
+
+  test("La solicitud nace Pendiente", () => {
+    expect(body).to.have.property("estado").that.equals("Pendiente");
+  });
+
+  bru.setEnvVar("solicitudId", body.id);
+}
