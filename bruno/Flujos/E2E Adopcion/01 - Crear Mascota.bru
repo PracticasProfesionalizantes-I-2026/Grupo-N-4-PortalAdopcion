@@ -1,0 +1,45 @@
+meta {
+  name: 01 - Crear Mascota
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/mascotas
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Morena",
+    "especie": "Gato",
+    "raza": "Mestizo",
+    "edad": 1,
+    "sexo": "Hembra"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 201 Created", () => {
+    expect(status).to.equal(201);
+  });
+
+  test("La mascota nace Disponible", () => {
+    expect(body).to.have.property("estado").that.equals("Disponible");
+  });
+
+  test("Devuelve el id de la mascota", () => {
+    expect(body).to.have.property("id").that.is.a("string");
+  });
+
+  bru.setEnvVar("mascotaId", body.id);
+}

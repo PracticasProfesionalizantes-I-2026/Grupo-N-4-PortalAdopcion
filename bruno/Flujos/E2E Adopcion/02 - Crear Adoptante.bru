@@ -1,0 +1,41 @@
+meta {
+  name: 02 - Crear Adoptante
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/adoptantes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreCompleto": "Pedro Ruiz",
+    "email": "pedro.ruiz@mail.com",
+    "dni": "40888999",
+    "telefono": "1155566677",
+    "direccion": "Av. San Martin 789"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 201 Created", () => {
+    expect(status).to.equal(201);
+  });
+
+  test("Devuelve el id del adoptante", () => {
+    expect(body).to.have.property("id").that.is.a("string");
+  });
+
+  bru.setEnvVar("adoptanteId", body.id);
+}

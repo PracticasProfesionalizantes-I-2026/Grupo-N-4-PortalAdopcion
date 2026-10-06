@@ -1,0 +1,35 @@
+meta {
+  name: 06 - Aprobar Solicitud
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/solicitudes/{{solicitudId}}/estado
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "estado": "Aprobada"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("La solicitud queda Aprobada", () => {
+    expect(body).to.have.property("estado").that.equals("Aprobada");
+  });
+}

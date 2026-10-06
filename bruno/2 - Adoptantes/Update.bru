@@ -1,0 +1,45 @@
+meta {
+  name: Update
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/adoptantes/{{adoptanteId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreCompleto": "Carla Gomez",
+    "email": "carla.gomez@mail.com",
+    "dni": "40888777",
+    "telefono": "1155599888",
+    "direccion": "Av. Belgrano 456, Piso 2"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("Actualiza el adoptante indicado", () => {
+    expect(body).to.have.property("id").that.equals(bru.getEnvVar("adoptanteId"));
+  });
+
+  test("Los campos modificados se reflejan", () => {
+    expect(body).to.have.property("telefono").that.equals("1155599888");
+    expect(body).to.have.property("direccion").that.equals("Av. Belgrano 456, Piso 2");
+    expect(body).to.have.property("email").that.equals("carla.gomez@mail.com");
+  });
+}

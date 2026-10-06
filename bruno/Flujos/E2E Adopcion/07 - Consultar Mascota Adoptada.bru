@@ -1,0 +1,29 @@
+meta {
+  name: 07 - Consultar Mascota (Adoptada)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/mascotas/{{mascotaId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("Al aprobar la solicitud la mascota pasa a Adoptada", () => {
+    expect(body).to.have.property("estado").that.equals("Adoptada");
+  });
+}

@@ -1,0 +1,30 @@
+meta {
+  name: 13 - 404 Delete Mascota Inexistente
+  type: http
+  seq: 13
+}
+
+delete {
+  url: {{baseUrl}}/mascotas/{{guidInexistente}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 404 Not Found", () => {
+    expect(status).to.equal(404);
+  });
+
+  test("El body de error tiene un mensaje", () => {
+    expect(body).to.have.property("message").that.is.a("string");
+    expect(body.message.length).to.be.greaterThan(0);
+  });
+}

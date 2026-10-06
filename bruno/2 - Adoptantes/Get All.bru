@@ -1,0 +1,41 @@
+meta {
+  name: Get All
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/adoptantes
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("El body es un array", () => {
+    expect(body).to.be.an("array");
+  });
+
+  test("Cada adoptante cumple el shape de AdoptanteResponseDTO", () => {
+    for (const adoptante of body) {
+      expect(adoptante).to.have.property("id").that.is.a("string");
+      expect(adoptante).to.have.property("nombreCompleto").that.is.a("string");
+      expect(adoptante).to.have.property("email").that.is.a("string");
+      expect(adoptante).to.have.property("dni").that.is.a("string");
+      expect(adoptante).to.have.property("telefono").that.is.a("string");
+      expect(adoptante).to.have.property("direccion").that.is.a("string");
+      expect(adoptante).to.have.property("fechaRegistro");
+    }
+  });
+}

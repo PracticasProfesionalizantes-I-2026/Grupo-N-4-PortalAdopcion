@@ -1,0 +1,40 @@
+meta {
+  name: 14 - 409 Adoptante Email Duplicado
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/adoptantes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreCompleto": "Copia Ana",
+    "email": "ana.garcia@mail.com",
+    "dni": "40122445",
+    "telefono": "1144447777",
+    "direccion": "Calle 20"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 409 Conflict", () => {
+    expect(status).to.equal(409);
+  });
+
+  test("El body de error tiene un mensaje", () => {
+    expect(body).to.have.property("message").that.is.a("string");
+    expect(body.message.length).to.be.greaterThan(0);
+  });
+}

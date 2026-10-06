@@ -1,0 +1,38 @@
+meta {
+  name: 01 - Setup Solicitud (Tom + Ana)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/solicitudes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "mascotaId": "{{mascotaTomId}}",
+    "adoptanteId": "{{adoptanteAnaId}}"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Setup: 201 Created", () => {
+    expect(status).to.equal(201);
+  });
+
+  test("Deja a Tom Reservada y a Ana con solicitud activa para los casos 409", () => {
+    expect(body).to.have.property("estado").that.equals("Pendiente");
+  });
+
+  bru.setEnvVar("solicitudId", body.id);
+}

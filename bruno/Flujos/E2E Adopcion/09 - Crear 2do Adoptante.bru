@@ -1,0 +1,41 @@
+meta {
+  name: 09 - Crear 2do Adoptante
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/adoptantes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombreCompleto": "Lucia Fernandez",
+    "email": "lucia.fernandez@mail.com",
+    "dni": "40999000",
+    "telefono": "1166688899",
+    "direccion": "Av. Rivadavia 1234"
+  }
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 201 Created", () => {
+    expect(status).to.equal(201);
+  });
+
+  test("Devuelve el id del adoptante", () => {
+    expect(body).to.have.property("id").that.is.a("string");
+  });
+
+  bru.setEnvVar("adoptanteId", body.id);
+}

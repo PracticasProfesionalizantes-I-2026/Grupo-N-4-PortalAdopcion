@@ -1,0 +1,41 @@
+meta {
+  name: Get All
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/mascotas
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("El body es un array", () => {
+    expect(body).to.be.an("array");
+  });
+
+  test("Cada mascota cumple el shape de MascotaResponseDTO", () => {
+    for (const mascota of body) {
+      expect(mascota).to.have.property("id").that.is.a("string");
+      expect(mascota).to.have.property("nombre").that.is.a("string");
+      expect(mascota).to.have.property("especie").that.is.a("string");
+      expect(mascota).to.have.property("edad").that.is.a("number");
+      expect(mascota).to.have.property("sexo").that.is.a("string");
+      expect(mascota).to.have.property("estado").that.is.a("string");
+      expect(mascota).to.have.property("fechaRegistro");
+    }
+  });
+}

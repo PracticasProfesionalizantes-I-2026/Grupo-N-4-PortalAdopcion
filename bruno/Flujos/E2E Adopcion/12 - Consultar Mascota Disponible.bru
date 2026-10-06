@@ -1,0 +1,29 @@
+meta {
+  name: 12 - Consultar Mascota (Disponible)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/mascotas/{{mascotaId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("Al cancelar la solicitud la mascota vuelve a Disponible", () => {
+    expect(body).to.have.property("estado").that.equals("Disponible");
+  });
+}

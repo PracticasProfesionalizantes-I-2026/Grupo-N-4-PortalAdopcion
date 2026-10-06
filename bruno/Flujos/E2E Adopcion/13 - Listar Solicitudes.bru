@@ -1,0 +1,33 @@
+meta {
+  name: 13 - Listar Solicitudes
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/solicitudes
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+tests {
+  const res = bru.getResBody();
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  test("Código de estado 200", () => {
+    expect(status).to.equal(200);
+  });
+
+  test("El body es un array", () => {
+    expect(body).to.be.an("array");
+  });
+
+  test("Incluye las solicitudes creadas en el flujo", () => {
+    expect(body.some(s => s.id === bru.getEnvVar("solicitudId"))).to.equal(true);
+  });
+}
