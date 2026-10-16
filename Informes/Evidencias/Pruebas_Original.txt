@@ -1,0 +1,8 @@
+Test run for /workspace/scratch/06cad9335bdb/repo/Tests/API.Integration.Tests/bin/Debug/net10.0/API.Integration.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    36, Skipped:     0, Total:    36, Duration: 3 s - API.Integration.Tests.dll (net10.0)
+Test run for /workspace/scratch/06cad9335bdb/repo/Tests/BusinessLogic.Tests/bin/Debug/net10.0/BusinessLogic.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    37, Skipped:     0, Total:    37, Duration: 146 ms - BusinessLogic.Tests.dll (net10.0)

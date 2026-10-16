@@ -1,0 +1,40 @@
+meta {
+  name: 04 Evaluar
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/api/solicitudes/{{solicitudPendienteId}}/evaluacion
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "estado": "Aprobada",
+    "motivo": "Cumple requisitos",
+    "entidadAutorizante": "ONG de prueba"
+  }
+}
+
+tests {
+  test("200 - solicitud aprobada", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("el proceso queda Aprobada", function() {
+    expect(res.body.estado).to.equal("Aprobada");
+  });
+  test("registra la entidad autorizante", function() {
+    expect(res.body.entidadAutorizante).to.equal("ONG de prueba");
+  });
+}
+

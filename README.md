@@ -1,18 +1,16 @@
-# Grupo-N-4-PortalAdopcion
-Integrantes: Catalina Giordano, Francisco Ledesma 
+# Portal de Adopción - versión de prueba descargable
 
-Proyecto: 
+Empezar por **[LEEME_PRIMERO.md](LEEME_PRIMERO.md)**.
 
-https://docs.google.com/document/d/1w4Xe_tpaFmimHWNv-FOr7oU1mljxRcA6uU23xCQ0NzE/edit?tab=t.0
+API .NET 10 + interfaz HTML/CSS/JavaScript + EF Core SQLite, con implementación de prueba para los 18 casos de uso documentados. Arquitectura: Controller → IPortalService/PortalService → IPortalRepository/PortalRepository → DbContext.
 
-MOCKUPS:
+```powershell
+dotnet restore PortalAdopcion.slnx
+dotnet build PortalAdopcion.slnx
+dotnet test PortalAdopcion.slnx
+dotnet run --project API --launch-profile Demo
+```
 
-https://excalidraw.com/#room=8fd5edbd3dc8d019f2b7,l1CTB_eTqamJcjB-0FAZAQ
+Interfaz: http://localhost:5104 · Scalar: http://localhost:5104/scalar/v1
 
-Casos de uso:
-
-https://docs.google.com/document/d/18lrj1Eu7lIVF9J3BuKHSHggcuzbWSIxXGOIXdsvKoTc/edit?tab=t.0
-
-Actores:
-
-https://docs.google.com/document/d/1XNMC8vHmskA5OjkIgs9R0YtFNa8JBHv-QOai8UG1BJg/edit?tab=t.0#heading=h.9m6ryyrg4dgd
+No se modificó el repositorio remoto. Ver informes, límites de la prueba y plan de ramas en `Informes/`.

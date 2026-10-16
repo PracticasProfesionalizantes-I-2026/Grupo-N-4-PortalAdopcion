@@ -1,0 +1,25 @@
+meta {
+  name: 17 Auditoria
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/auditoria
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("200 - listado de auditoría", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("devuelve una lista de eventos", function() {
+    expect(res.body).to.be.an("array");
+  });
+}
+

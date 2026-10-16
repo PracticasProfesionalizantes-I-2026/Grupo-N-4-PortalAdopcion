@@ -1,0 +1,36 @@
+meta {
+  name: 00b Login veterinario
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "veterinario@demo.local",
+    "password": "DemoPortal2026!"
+  }
+}
+
+script:post-response {
+  bru.setVar("vetToken", res.body.token);
+}
+
+tests {
+  test("200 - credenciales válidas", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("la sesión corresponde al Veterinario", function() {
+    expect(res.body.usuario.rol).to.equal("Veterinario");
+  });
+}
+
