@@ -1,0 +1,38 @@
+meta {
+  name: 15 Finalizar
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/solicitudes/{{solicitudPruebaId}}/finalizacion
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "motivo": "Prueba exitosa"
+  }
+}
+
+tests {
+  test("200 - adopción finalizada", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("el proceso queda Adoptada", function() {
+    expect(res.body.estado).to.equal("Adoptada");
+  });
+  test("registra la fecha de finalización", function() {
+    expect(res.body.fechaFinalizacion).to.not.equal(null);
+  });
+}
+

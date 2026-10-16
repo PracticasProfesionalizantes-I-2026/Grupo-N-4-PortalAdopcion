@@ -1,0 +1,418 @@
+﻿ID y NOMBRE:  Gestionar Blacklist de Usuarios
+DESCRIPCIÓN:Permite al administrador registrar, modificar o eliminar sanciones sobre usuarios que hayan incumplido las normas del proceso de adopción, impidiendo temporalmente que puedan realizar nuevas postulaciones.
+ACTOR PRINCIPAL: Administrador
+ACTORES SECUNDARIOS: Sistema
+DISPARADOR (TRIGGER): El administrador detecta una infracción o necesita revisar una sanción existente.
+PRECONDICIONES
+El administrador debe encontrarse autenticado en el sistema.
+El administrador debe poseer permisos para gestionar sanciones y usuarios.
+El usuario sobre el que se aplicará la sanción debe existir en el sistema.
+El usuario no debe encontrarse eliminado o inactivo permanentemente.
+Debe existir un motivo válido que justifique la sanción.
+El sistema debe encontrarse operativo y con acceso a los registros de usuarios.
+Deben existir registros suficientes que permitan identificar al usuario infractor.
+Si el usuario ya posee una sanción activa, el administrador debe contar con permisos para modificarla o reemplazarla.
+FLUJO PRINCIPAL
+El Administrador accede al módulo Blacklist.
+El Sistema muestra el listado de usuarios bloqueados y un buscador.
+El Administrador busca al usuario por DNI, correo o nombre.
+El Sistema muestra la información del usuario.
+El Administrador selecciona la opción Agregar bloqueo, Modificar bloqueo o Eliminar bloqueo.
+El Sistema solicita motivo, fecha de inicio y duración de la sanción.
+El Administrador completa la información requerida.
+El Sistema valida los datos ingresados.
+El Sistema registra la sanción.
+El Sistema impide nuevas solicitudes de adopción mientras la sanción esté vigente.
+El Sistema registra la acción en auditoría.
+El Sistema confirma la operación.
+FLUJOS ALTERNATIVOS
+8a. Datos incompletos
+El Sistema informa los campos obligatorios faltantes.
+El flujo retorna al paso 7.
+8b. Usuario ya bloqueado
+El Sistema informa que existe una sanción vigente.
+El Administrador puede modificar la existente o cancelar la operación.
+3a. Usuario inexistente
+El Sistema informa que el usuario no fue encontrado.
+El flujo retorna al paso 3.
+POSTCONDICIONES
+Si la operación fue exitosa
+La sanción queda registrada en la blacklist.
+Se almacena el motivo de la sanción.
+Se almacena la fecha de inicio de la sanción.
+Se almacena la fecha de vencimiento de la sanción.
+El usuario queda imposibilitado de iniciar nuevas solicitudes de adopción mientras dure la sanción.
+El sistema actualiza el estado del usuario respecto de su elegibilidad para adoptar.
+La acción queda registrada en el módulo de auditoría.
+Se conserva la trazabilidad de quién aplicó la sanción y cuándo lo hizo.
+Los procesos futuros verificarán automáticamente esta restricción.
+Si la operación falla
+No se modifica ninguna información del usuario.
+No se genera ninguna sanción parcial.
+El sistema conserva la integridad de la información existente.
+Se informa al administrador el motivo de la falla.
+REGLAS DE NEGOCIO
+RN-01 Los usuarios bloqueados no podrán iniciar procesos de adopción.
+RN-02 Toda sanción debe tener motivo y fecha de vencimiento.
+ID y NOMBRE: Crear Solicitud de Adopción
+DESCRIPCIÓN:Permite al adoptante iniciar formalmente un proceso de adopción sobre una mascota disponible.
+ACTOR PRINCIPAL: Adoptante
+ACTORES SECUNDARIOS: Sistema
+DISPARADOR (TRIGGER):El adoptante selecciona la opción "Solicitar adopción".
+PRECONDICIONES
+El adoptante debe haber iniciado sesión.
+El adoptante debe poseer una cuenta activa.
+El adoptante debe tener su perfil completo.
+La mascota debe existir en el sistema.
+La mascota debe encontrarse disponible para adopción.
+El usuario no debe encontrarse en blacklist.
+El usuario no debe poseer procesos de adopción activos.
+La mascota no debe estar reservada por otro proceso.
+El sistema debe tener acceso a la información del usuario y de la mascota.
+No deben existir restricciones administrativas sobre la mascota seleccionada.
+FLUJO PRINCIPAL
+El Adoptante accede a la ficha de la mascota.
+El Sistema muestra toda la información disponible.
+El Adoptante selecciona "Solicitar adopción".
+El Sistema verifica las reglas de negocio.
+El Sistema muestra un resumen de la solicitud.
+El Adoptante confirma la solicitud.
+El Sistema crea el proceso de adopción con estado Pendiente.
+El Sistema registra la fecha de creación.
+El Sistema notifica al personal de la ONG.
+El Sistema informa al adoptante que la solicitud fue registrada exitosamente.
+FLUJOS ALTERNATIVOS
+2a. La mascota no existe
+El Sistema detecta que la mascota no se encuentra registrada.
+Informa la situación al Adoptante.
+Finaliza el caso de uso.
+2b. La mascota ya no se encuentra disponible
+El Sistema detecta que la mascota cambió de estado.
+Informa que ya no puede solicitarse su adopción.
+Finaliza el caso de uso.
+3a. Usuario sin sesión iniciada
+El Sistema detecta que el Adoptante no se encuentra autenticado.
+Solicita autenticación.
+Una vez autenticado correctamente, el flujo continúa desde el paso 2.
+4a. Adoptante incluido en la Blacklist
+El Sistema verifica que el Adoptante posee restricciones para adoptar.
+Rechaza automáticamente la creación de la solicitud.
+Informa el motivo correspondiente.
+Registra el intento en auditoría.
+Finaliza el caso de uso.
+5a. Perfil incompleto
+El Sistema detecta información obligatoria faltante.
+Indica los datos que deben completarse.
+El flujo retorna al paso 6 una vez actualizada la información.
+7a. Cancelación por parte del Adoptante
+El Adoptante decide cancelar la operación.
+El Sistema elimina toda la información temporal.
+No registra ninguna solicitud.
+Finaliza el caso de uso.
+8a. Datos inválidos
+El Sistema detecta inconsistencias en la información ingresada.
+Informa los errores encontrados.
+El flujo retorna al paso 6.
+9a. Conflicto de concurrencia
+Mientras se procesa la solicitud, otro usuario inicia un proceso sobre la misma mascota.
+El Sistema detecta que el estado de la mascota cambió antes de finalizar la transacción.
+El Sistema cancela la operación para evitar inconsistencias.
+Informa que la mascota ya no se encuentra disponible.
+Registra el evento en auditoría.
+Finaliza el caso de uso.
+POSTCONDICIONES
+Operación exitosa
+La solicitud queda registrada correctamente.
+La solicitud se almacena con estado Pendiente de Evaluación.
+La solicitud queda asociada al Adoptante.
+La solicitud queda asociada a la mascota.
+Se registra la fecha y hora de creación.
+Se registra el usuario responsable.
+La operación queda registrada en auditoría.
+Se mantiene la integridad y consistencia de la información.
+La solicitud queda disponible para su posterior evaluación por el Personal de Adopciones.
+Operación fallida
+No se crea ninguna solicitud.
+No quedan registros parciales en el sistema.
+La mascota conserva su estado anterior.
+Se preserva la integridad de la información.
+El motivo del error queda registrado cuando corresponde.
+Los eventos críticos quedan almacenados en el módulo de auditoría.\
+REGLAS DE NEGOCIO
+RN-03 Solo puede existir un proceso activo por usuario.
+RN-04 Las mascotas reservadas dejan de aparecer como disponibles.
+ID y NOMBRE: Registrar Historial Clínico
+DESCRIPCIÓN:Permite al Veterinario o al Administrador crear el historial clínico de una mascota registrada en el sistema, incorporando la información médica inicial necesaria para su seguimiento sanitario. El historial clínico constituye el registro oficial de la condición de salud de la mascota y será utilizado posteriormente para registrar tratamientos, controles veterinarios, vacunaciones, observaciones médicas y demás antecedentes clínicos durante toda su permanencia en la organización. 
+ACTOR PRINCIPAL: Veterinario
+ACTORES SECUNDARIOS: Administrador
+DISPARADOR (TRIGGER):El Veterinario solicita registrar el historial clínico de una mascota. 
+PRECONDICIONES
+El veterinario debe encontrarse autenticado.
+El veterinario debe poseer permisos para gestionar información clínica.
+La mascota debe estar registrada en el sistema.
+La ficha clínica debe existir.
+El usuario debe encontrarse autenticado.
+El usuario debe poseer permisos para registrar historiales clínicos.
+La mascota debe poseer un estado válido dentro del sistema.
+La mascota no debe poseer un historial clínico previamente registrado.
+Debe existir disponibilidad del servicio de almacenamiento.
+No debe existir otro usuario registrando simultáneamente el historial clínico de la misma mascota.
+Flujo Principal
+El Veterinario solicita registrar el historial clínico de una mascota.
+El Sistema verifica que la mascota exista.
+El Sistema verifica que la mascota no posea un historial clínico registrado.
+El Sistema recupera la información general de la mascota.
+El Sistema habilita el registro de la información clínica inicial.
+El Veterinario registra la información clínica correspondiente, incluyendo cuando corresponda:
+estado general de salud;
+peso;
+edad estimada;
+vacunas aplicadas;
+desparasitación;
+esterilización;
+enfermedades diagnosticadas;
+alergias conocidas;
+antecedentes médicos relevantes.
+El Sistema valida la integridad y consistencia de la información ingresada.
+El Veterinario confirma el registro del historial clínico.
+El Sistema genera un identificador único para el historial clínico.
+El Sistema asocia el historial clínico a la mascota correspondiente.
+El Sistema registra la fecha y hora de creación.
+El Sistema registra el usuario responsable del registro.
+El Sistema registra la operación en el módulo de auditoría.
+El Sistema confirma la creación exitosa del historial clínico.
+Flujos Alternativos
+2a. Mascota inexistente
+El Sistema detecta que la mascota no existe.
+Informa la situación al Veterinario.
+Finaliza el caso de uso.
+3a. Historial clínico existente
+El Sistema detecta que la mascota ya posee un historial clínico.
+Informa la situación.
+Ofrece consultar el historial existente.
+Finaliza el caso de uso.
+6a. Información obligatoria incompleta
+El Sistema detecta que faltan datos obligatorios.
+Indica los campos pendientes.
+El flujo retorna al paso 6.
+7a. Datos inconsistentes
+El Sistema detecta inconsistencias en la información clínica.
+Informa los errores encontrados.
+El flujo retorna al paso 6.
+8a. Cancelación por parte del Veterinario
+El Veterinario decide cancelar el registro.
+El Sistema elimina toda la información temporal.
+No registra el historial clínico.
+Finaliza el caso de uso.
+POSTCONDICIONES
+Operación exitosa
+El historial clínico queda registrado correctamente.
+El historial queda asociado a la mascota correspondiente.
+Se genera un identificador único para el historial clínico.
+Se almacena toda la información médica inicial.
+Se registra la fecha y hora de creación.
+Se registra el usuario responsable.
+La operación queda registrada en auditoría.
+El historial clínico queda disponible para registrar tratamientos, controles y observaciones médicas posteriores.
+Se mantiene la integridad y consistencia de la información.
+Operación fallida
+No se registra el historial clínico.
+No quedan registros parciales.
+La mascota mantiene su información original.
+Se preserva la integridad de los datos.
+El motivo del error queda registrado cuando corresponda.
+Los eventos críticos quedan registrados en auditoría.
+ID y NOMBRE: Evaluar / Autorizar Adopción
+DESCRIPCIÓN:Permite al Personal de Adopciones o al Administrador evaluar una solicitud de adopción previamente registrada, verificando el cumplimiento de los requisitos establecidos por la organización y determinando si la adopción es aprobada o rechazada. En caso de aprobación, el sistema autoriza la continuidad del proceso de adopción; en caso de rechazo, registra el motivo y finaliza la solicitud. 
+ACTOR PRINCIPAL: Administrador / Voluntario
+ACTORES SECUNDARIOS: Sistema
+DISPARADOR (TRIGGER):El Personal de Adopciones selecciona una solicitud en estado Pendiente de Evaluación para iniciar su análisis 
+PRECONDICIONES
+El usuario debe encontrarse autenticado.
+El usuario debe poseer permisos para evaluar solicitudes de adopción.
+La solicitud debe existir en el sistema.
+La solicitud debe encontrarse en estado Pendiente de Evaluación.
+El Adoptante asociado debe permanecer activo.
+El Adoptante no debe encontrarse incorporado a la Blacklist durante el proceso de evaluación.
+La mascota debe continuar disponible para adopción.
+No debe existir otro usuario evaluando simultáneamente la misma solicitud.
+El sistema debe encontrarse operativo.
+Debe existir disponibilidad del servicio de almacenamiento y auditoría.
+FLUJO PRINCIPAL
+El Personal de Adopciones solicita evaluar una solicitud de adopción.
+El Sistema verifica que la solicitud exista y se encuentre en estado Pendiente de Evaluación.
+El Sistema recupera la información de la mascota, del Adoptante y de la solicitud.
+El Sistema verifica que la mascota continúe disponible para adopción.
+El Sistema verifica que el Adoptante no se encuentre registrado en la Blacklist.
+El Personal de Adopciones analiza la documentación presentada y la información registrada.
+El Personal de Adopciones registra las observaciones correspondientes a la evaluación.
+El Personal de Adopciones determina el resultado de la evaluación.
+El Sistema solicita la confirmación de la decisión.
+El Personal de Adopciones confirma la resolución.
+El Sistema registra el resultado de la evaluación.
+Si la solicitud es aprobada:
+cambia su estado a Aprobada;
+habilita la creación del Proceso de Adopción;
+registra la fecha y hora de aprobación.
+Si la solicitud es rechazada:
+cambia su estado a Rechazada;
+registra el motivo del rechazo;
+registra la fecha y hora de resolución.
+El Sistema registra el usuario responsable de la evaluación.
+El Sistema registra la operación en el módulo de auditoría.
+El Sistema informa la resolución de la solicitud.
+FLUJOS ALTERNATIVOS
+2a. Solicitud inexistente
+El Sistema detecta que la solicitud no existe.
+Informa la situación.
+Finaliza el caso de uso.
+2b. Solicitud ya evaluada
+El Sistema detecta que la solicitud ya fue resuelta.
+Informa que no puede volver a evaluarse.
+Finaliza el caso de uso.
+4a. La mascota ya no está disponible
+Durante la evaluación, el Sistema detecta que la mascota cambió de estado.
+El Sistema informa que la adopción no puede continuar.
+La solicitud cambia al estado Cancelada.
+El Sistema registra el motivo correspondiente.
+Registra el evento en auditoría.
+Finaliza el caso de uso.
+5a. Adoptante incorporado a la Blacklist
+El Sistema detecta que el Adoptante fue incluido en la Blacklist antes de finalizar la evaluación.
+El Sistema bloquea la autorización.
+La solicitud cambia al estado Rechazada.
+Registra automáticamente el motivo del rechazo.
+Registra el evento en auditoría.
+Finaliza el caso de uso.
+7a. Información insuficiente
+El Personal de Adopciones determina que la información presentada resulta insuficiente.
+El Sistema permite registrar observaciones.
+La solicitud cambia al estado En Observación.
+El Sistema registra la fecha y el motivo.
+Finaliza el caso de uso.
+10a. Cancelación de la evaluación
+El Personal de Adopciones decide cancelar la evaluación antes de confirmarla.
+El Sistema descarta la resolución temporal.
+La solicitud mantiene su estado Pendiente de evaluación.
+Finaliza el caso de uso.
+POSTCONDICIONES
+Operación exitosa
+La solicitud queda evaluada.
+El estado de la solicitud se actualiza a Aprobada, Rechazada o En Observación, según corresponda.
+Se registra el resultado de la evaluación.
+Se almacena el motivo de rechazo u observaciones cuando corresponda.
+Se registra la fecha y hora de la resolución.
+Se registra el usuario responsable de la evaluación.
+La operación queda registrada en el módulo de auditoría.
+Si la solicitud fue aprobada, queda habilitada la creación del Proceso de Adopción.
+Se mantiene la integridad y consistencia de la información.
+Operación fallida
+La solicitud conserva su estado original.
+No se generan modificaciones parciales.
+Se mantiene la integridad de los datos.
+El motivo del error queda registrado cuando corresponda.
+Los incidentes críticos quedan almacenados en auditoría.
+REGLAS DE NEGOCIO
+RN-05 Solo solicitudes en estado Pendiente pueden ser evaluadas.
+RN-06 Toda aprobación o rechazo debe quedar registrada con usuario, fecha y motivo cuando corresponda.
+ID y NOMBRE: Crear Proceso de Adopción en Estado "Pendiente"
+DESCRIPCIÓN
+Permite al sistema crear automáticamente un nuevo proceso de adopción cuando una solicitud de adopción cumple todas las validaciones establecidas por las reglas de negocio. El proceso se registra con estado inicial "Pendiente", quedando disponible para su posterior evaluación por el personal autorizado de la ONG.
+ACTOR PRINCIPAL
+Sistema
+ACTORES SECUNDARIOS
+Adoptante
+Administrador / Voluntario (intervendrán posteriormente en la evaluación del proceso).
+DISPARADOR (TRIGGER)
+El sistema recibe la confirmación de una solicitud de adopción válida por parte de un adoptante.
+PRECONDICIONES
+El adoptante debe encontrarse autenticado en el sistema.
+El adoptante debe poseer una cuenta activa.
+El perfil del adoptante debe encontrarse completo y actualizado.
+La mascota seleccionada debe existir en el sistema.
+La mascota debe encontrarse disponible para adopción.
+La mascota no debe estar reservada por otro proceso.
+La mascota no debe encontrarse en tratamiento que impida su adopción.
+El adoptante no debe encontrarse incluido en la blacklist.
+El adoptante no debe poseer otro proceso de adopción activo.
+No debe existir una solicitud pendiente para la misma mascota y el mismo usuario.
+La solicitud de adopción debe haber sido confirmada por el adoptante.
+Todas las validaciones de negocio deben haberse ejecutado correctamente.
+El sistema debe encontrarse operativo y con acceso a la base de datos.
+Debe existir disponibilidad para almacenar un nuevo registro del proceso.
+No deben existir errores de integridad referencial entre el usuario y la mascota.
+FLUJO PRINCIPAL
+El Sistema recibe la confirmación de la solicitud de adopción.
+El Sistema verifica nuevamente la disponibilidad de la mascota.
+El Sistema verifica que el adoptante no posea procesos activos.
+El Sistema verifica que el adoptante no se encuentre en blacklist.
+El Sistema valida la integridad de la información recibida.
+El Sistema genera un identificador único para el nuevo proceso de adopción.
+El Sistema crea el proceso de adopción.
+El Sistema asigna automáticamente el estado inicial "Pendiente".
+El Sistema vincula el proceso con la mascota seleccionada.
+El Sistema vincula el proceso con el adoptante.
+El Sistema registra la fecha y hora de creación.
+El Sistema registra el usuario que originó la solicitud.
+El Sistema actualiza el historial de solicitudes del adoptante.
+El Sistema registra la operación en el módulo de auditoría.
+El Sistema notifica al personal autorizado de la ONG sobre la nueva solicitud.
+El Sistema informa al adoptante que el proceso fue creado correctamente.
+FLUJOS ALTERNATIVOS
+1a. La mascota dejó de estar disponible
+El Sistema detecta que la mascota fue reservada o adoptada durante el proceso.
+El Sistema cancela la creación del proceso.
+El Sistema informa al adoptante que la mascota ya no se encuentra disponible.
+El caso de uso finaliza.
+a. El adoptante posee otro proceso activo
+El Sistema detecta un proceso de adopción activo asociado al usuario.
+El Sistema rechaza la creación del nuevo proceso.
+El Sistema informa el motivo del rechazo.
+El caso de uso finaliza.
+4a. El usuario pertenece a la blacklist
+El Sistema detecta una sanción vigente.
+El Sistema impide la creación del proceso.
+El Sistema informa el motivo del bloqueo.
+El caso de uso finaliza.
+5a. Error en la validación de datos
+El Sistema detecta información inconsistente o incompleta.
+El Sistema cancela la operación.
+El Sistema registra el error.
+El Sistema informa al usuario que la solicitud no pudo procesarse.
+6a. Error en la notificación
+El Sistema crea correctamente el proceso de adopción.
+El Sistema no puede enviar la notificación al personal autorizado.
+El Sistema registra el incidente en auditoría.
+El proceso continúa en estado "Pendiente".
+POSTCONDICIONES
+Si la operación finaliza exitosamente
+Se crea un nuevo proceso de adopción con un identificador único.
+El proceso queda asociado al adoptante solicitante.
+El proceso queda asociado a la mascota seleccionada.
+El estado inicial del proceso se establece como "Pendiente".
+Se registra la fecha y hora de creación.
+Se almacena el usuario responsable de la solicitud.
+La solicitud queda disponible para su evaluación por parte del Administrador o Voluntario.
+La información queda disponible para consultas posteriores.
+El historial del adoptante se actualiza con el nuevo proceso.
+La mascota queda vinculada al proceso de adopción correspondiente.
+La operación queda registrada en el módulo de auditoría.
+Se mantiene la trazabilidad completa de la creación del proceso.
+El personal autorizado puede visualizar inmediatamente la nueva solicitud.
+El adoptante recibe la confirmación del registro exitoso.
+Si la operación no puede completarse
+No se crea ningún proceso de adopción.
+No se modifica la información de la mascota.
+No se modifica el historial del adoptante.
+No se generan registros parciales o inconsistentes.
+El sistema mantiene la integridad de la información almacenada.
+Se registra el error cuando corresponda.
+Se informa al usuario el motivo por el cual no pudo completarse la operación.
+REGLAS DE NEGOCIO
+RN-18.1: Todo proceso de adopción debe comenzar con el estado "Pendiente".
+RN-18.2: Un adoptante no podrá tener más de un proceso de adopción activo simultáneamente.
+RN-18.3: Solo podrán crearse procesos de adopción para mascotas con estado "Disponible".
+RN-18.4: Los usuarios incluidos en la blacklist no podrán generar nuevos procesos de adopción mientras la sanción permanezca vigente.
+RN-18.5: Toda creación de un proceso de adopción deberá quedar registrada en la auditoría del sistema para garantizar la trazabilidad de las operaciones.
+
+

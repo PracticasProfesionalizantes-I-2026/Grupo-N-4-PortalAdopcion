@@ -1,0 +1,42 @@
+meta {
+  name: 01 Blacklist
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/blacklists
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "adoptanteId": "{{adoptanteSancionId}}",
+    "motivo": "Sanción de ejemplo",
+    "desde": "2027-10-01T00:00:00Z",
+    "hasta": "2028-10-01T00:00:00Z"
+  }
+}
+
+script:post-response {
+  bru.setVar("sancionId", res.body.id);
+}
+
+tests {
+  test("201 - sanción registrada", function() {
+    expect(res.status).to.equal(201);
+  });
+  test("la sanción no está revocada", function() {
+    expect(res.body.revocada).to.equal(false);
+  });
+}
+

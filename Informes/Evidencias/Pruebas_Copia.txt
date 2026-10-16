@@ -1,0 +1,4 @@
+Test run for /workspace/scratch/06cad9335bdb/PortalAdopcion_Prueba/Tests/Portal.Tests/bin/Debug/net10.0/Portal.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    42, Skipped:     0, Total:    42, Duration: 21 s - Portal.Tests.dll (net10.0)
