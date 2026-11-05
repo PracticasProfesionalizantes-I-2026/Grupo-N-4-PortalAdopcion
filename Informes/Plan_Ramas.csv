@@ -1,0 +1,19 @@
+﻿Caso de uso,Rama propuesta,Autor propuesto,Revisor propuesto,Estado remoto
+CU-01,feature/cu-01-blacklist,Francisco,Catalina,No creada
+CU-02,feature/cu-02-solicitud-adopcion,Francisco,Catalina,No creada
+CU-03,feature/cu-03-historial-clinico,Catalina,Francisco,No creada
+CU-04,feature/cu-04-evaluar-solicitud,Francisco,Catalina,No creada
+CU-05,feature/cu-05-creacion-proceso,Francisco,Catalina,No creada
+CU-06,feature/cu-06-registro-usuario,Catalina,Francisco,No creada
+CU-07,feature/cu-07-iniciar-sesion,Catalina,Francisco,No creada
+CU-08,feature/cu-08-usuarios-roles,Catalina,Francisco,No creada
+CU-09,feature/cu-09-catalogo-mascotas,Francisco,Catalina,No creada
+CU-10,feature/cu-10-evento-medico,Catalina,Francisco,No creada
+CU-11,feature/cu-11-entrevista,Francisco,Catalina,No creada
+CU-12,feature/cu-12-seguimiento-prueba,Catalina,Francisco,No creada
+CU-13,feature/cu-13-cancelar-proceso,Francisco,Catalina,No creada
+CU-14,feature/cu-14-abandono-automatico,Francisco,Catalina,No creada
+CU-15,feature/cu-15-finalizar-adopcion,Francisco,Catalina,No creada
+CU-16,feature/cu-16-reportes,Catalina,Francisco,No creada
+CU-17,feature/cu-17-auditoria,Catalina,Francisco,No creada
+CU-18,feature/cu-18-incidentes,Catalina,Francisco,No creada

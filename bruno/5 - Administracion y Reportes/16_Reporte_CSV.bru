@@ -1,0 +1,25 @@
+meta {
+  name: 16 Reporte CSV
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/reportes?tipo=solicitudes&desde=2026-01-01&hasta=2027-01-01&formato=csv
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("200 - reporte generado", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("responde como CSV", function() {
+    expect(res.headers["content-type"]).to.contain("text/csv");
+  });
+}
+

@@ -1,0 +1,38 @@
+meta {
+  name: 10 Evento medico
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/mascotas/{{mascotaId}}/eventos-medicos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{vetToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "tipo": "Control",
+    "descripcion": "Control general",
+    "tratamiento": "Ninguno"
+  }
+}
+
+tests {
+  test("201 - evento médico registrado", function() {
+    expect(res.status).to.equal(201);
+  });
+  test("el evento tiene tipo y fecha", function() {
+    expect(res.body.tipo).to.equal("Control");
+    expect(res.body.fecha).to.be.a("string");
+  });
+}
+

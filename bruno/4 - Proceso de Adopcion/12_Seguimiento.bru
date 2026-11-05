@@ -1,0 +1,40 @@
+meta {
+  name: 12 Seguimiento
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/solicitudes/{{solicitudPruebaId}}/seguimientos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "animo": "Bien",
+    "alimentacion": "Normal",
+    "tareas": "Paseo",
+    "medicacion": "Ninguna",
+    "limpieza": "Adecuada",
+    "alerta": false
+  }
+}
+
+tests {
+  test("201 - seguimiento registrado", function() {
+    expect(res.status).to.equal(201);
+  });
+  test("el seguimiento pertenece al proceso en prueba", function() {
+    expect(res.body.solicitudId).to.equal(bru.getVar("solicitudPruebaId"));
+  });
+}
+

@@ -1,0 +1,44 @@
+meta {
+  name: 06 Registro
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/auth/registro
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Usuario de prueba",
+    "email": "{{regEmail}}",
+    "dni": "{{regDni}}",
+    "password": "ClavePrueba2026!",
+    "telefono": "3493000000",
+    "direccion": "Calle de ejemplo",
+    "edad": 21,
+    "estadoCivil": "Soltero/a",
+    "datosLaborales": "Estudiante"
+  }
+}
+
+script:pre-request {
+  const t = Date.now().toString();
+  bru.setVar("regEmail", "prueba" + t + "@example.com");
+  bru.setVar("regDni", "9" + t.slice(-8));
+}
+
+tests {
+  test("201 - cuenta de adoptante creada", function() {
+    expect(res.status).to.equal(201);
+  });
+  test("devuelve el rol Adoptante", function() {
+    expect(res.body.rol).to.equal("Adoptante");
+  });
+}

@@ -1,0 +1,32 @@
+meta {
+  name: 09 Mascotas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/mascotas
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const mascotas = res.getBody() || [];
+  const disponible = mascotas.find(m => m.estado === "Disponible");
+  if (disponible) bru.setVar("mascotaId", disponible.id);
+}
+
+tests {
+  test("200 - catálogo de mascotas", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("hay al menos una mascota disponible", function() {
+    const mascotas = res.getBody() || [];
+    expect(mascotas.some(m => m.estado === "Disponible")).to.equal(true);
+  });
+  test("el ID de mascota quedó capturado", function() {
+    expect(bru.getVar("mascotaId")).to.not.equal(undefined);
+    expect(bru.getVar("mascotaId")).to.not.equal("");
+  });
+}
+

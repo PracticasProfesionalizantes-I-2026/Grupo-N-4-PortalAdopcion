@@ -1,0 +1,25 @@
+meta {
+  name: 14 Control abandono demo
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/demo/procesar-abandonos
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("200 - control ejecutado", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("informa la cantidad procesada", function() {
+    expect(res.body.procesados).to.be.a("number");
+  });
+}
+

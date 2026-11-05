@@ -1,0 +1,35 @@
+meta {
+  name: 13 Cancelar
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/solicitudes/{{solicitudId}}/cancelacion
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "motivo": "Cambio de decisión"
+  }
+}
+
+tests {
+  test("200 - proceso cancelado", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("el proceso queda Cancelada", function() {
+    expect(res.body.estado).to.equal("Cancelada");
+  });
+}
+

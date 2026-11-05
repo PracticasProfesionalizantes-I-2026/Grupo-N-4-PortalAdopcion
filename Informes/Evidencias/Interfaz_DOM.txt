@@ -1,0 +1,5 @@
+PASS UI admin: catálogo, login, navegación y 23 formularios
+PASS UI voluntario: catálogo, login, navegación y 13 formularios
+PASS UI veterinario: catálogo, login, navegación y 7 formularios
+PASS UI adoptante: catálogo, login, navegación y 7 formularios
+UI: 4/4 roles verificados con servidor real y DOM; sin navegador gráfico.

@@ -1,0 +1,22 @@
+namespace PortalAdopcion.Shared.DTOs;
+using PortalAdopcion.Shared.Enums;
+
+public record Actor(Guid Id, string Rol, Guid? AdoptanteId);
+public record RegistroUsuarioDTO(string Nombre, string Email, string Dni, string Password, string Telefono, string Direccion, int Edad, string EstadoCivil, string DatosLaborales);
+public record LoginDTO(string Email, string Password);
+public record PersonalDTO(string Nombre, string Email, string Dni, string Password, string Rol, string? Matricula);
+public record UsuarioCambioDTO(string Rol, string Estado, string? Matricula);
+public record PerfilDTO(string NombreCompleto, string Email, string Dni, string Telefono, string Direccion, int Edad, string EstadoCivil, string DatosLaborales);
+public record MascotaFichaDTO(string Nombre, EspecieEnum Especie, string? Raza, int Edad, SexoEnum Sexo, string? FotoUrl, string? Chip);
+public record CambioMascotaDTO(EstadoMascotaEnum Estado, string Motivo);
+public record PostulacionDTO(Guid MascotaId, string MotivoAdopcion, Guid? AdoptanteId);
+public record EvaluacionDTO(EstadoSolicitudEnum Estado, string? Motivo, string EntidadAutorizante);
+public record MotivoDTO(string Motivo);
+public record BlacklistDTO(Guid AdoptanteId, string Motivo, DateTime Desde, DateTime Hasta);
+public record ClinicaDTO(decimal Peso, string EstadoGeneral, string Vacunas, string Antecedentes, bool Esterilizada);
+public record EventoMedicoDTO(string Tipo, string Descripcion, string Tratamiento);
+public record EntrevistaDTO(DateTime FechaProgramada, Guid VoluntarioId);
+public record ResultadoEntrevistaDTO(string Resultado, string Observaciones);
+public record SeguimientoDTO(string Animo, string Alimentacion, string Tareas, string Medicacion, string Limpieza, bool Alerta);
+public record ValidacionClinicaDTO(string Motivo);
+public record IncidenteDTO(Guid SolicitudId, string Gravedad, string Detalle);

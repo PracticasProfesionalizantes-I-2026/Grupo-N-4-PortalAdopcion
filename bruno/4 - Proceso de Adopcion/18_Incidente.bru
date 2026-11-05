@@ -1,0 +1,40 @@
+meta {
+  name: 18 Incidente
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/incidentes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "solicitudId": "{{solicitudPruebaId}}",
+    "gravedad": "Urgente",
+    "detalle": "Requiere revisión"
+  }
+}
+
+tests {
+  test("201 - incidente registrado", function() {
+    expect(res.status).to.equal(201);
+  });
+  test("el incidente queda asociado al proceso", function() {
+    expect(res.body.solicitudId).to.equal(bru.getVar("solicitudPruebaId"));
+  });
+  test("la gravedad recibida es válida", function() {
+    expect(res.body.gravedad).to.equal("Urgente");
+  });
+}
+

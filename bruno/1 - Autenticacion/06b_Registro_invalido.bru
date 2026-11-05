@@ -1,0 +1,39 @@
+meta {
+  name: 06b Registro inválido (DNI y teléfono no numéricos)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/auth/registro
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nombre": "Registro inválido",
+    "email": "invalidodemo@example.com",
+    "dni": "12AB34",
+    "password": "ClavePrueba2026!",
+    "telefono": "abc123",
+    "direccion": "Calle de ejemplo",
+    "edad": 25,
+    "estadoCivil": "Soltero/a",
+    "datosLaborales": "Estudiante"
+  }
+}
+
+tests {
+  test("400 - rechaza DNI/teléfono no numéricos", function() {
+    expect(res.status).to.equal(400);
+  });
+  test("el mensaje señala el DNI (solo dígitos)", function() {
+    expect(res.body.title).to.contain("DNI");
+  });
+}
+

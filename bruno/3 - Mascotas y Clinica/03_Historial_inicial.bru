@@ -1,0 +1,39 @@
+meta {
+  name: 03 Historial inicial
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/mascotas/{{mascotaId}}/historial
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{vetToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "peso": 5,
+    "estadoGeneral": "Saludable",
+    "vacunas": "Al día",
+    "antecedentes": "Ninguno",
+    "esterilizada": true
+  }
+}
+
+tests {
+  test("201 - historial inicial creado", function() {
+    expect(res.status).to.equal(201);
+  });
+  test("el historial queda asociado a la mascota", function() {
+    expect(res.body.mascotaId).to.equal(bru.getVar("mascotaId"));
+  });
+}
+

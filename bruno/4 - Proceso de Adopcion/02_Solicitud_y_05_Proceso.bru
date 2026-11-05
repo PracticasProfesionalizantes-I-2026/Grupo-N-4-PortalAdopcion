@@ -1,0 +1,44 @@
+meta {
+  name: 02 Solicitud y 05 Proceso
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/solicitudes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "mascotaId": "{{mascotaId}}",
+    "adoptanteId": "{{adoptanteId}}",
+    "motivoAdopcion": "Brindar un hogar"
+  }
+}
+
+script:post-response {
+  bru.setVar("solicitudId", res.body.id);
+}
+
+tests {
+  test("201 - proceso de adopción creado", function() {
+    expect(res.status).to.equal(201);
+  });
+  test("el proceso nace en estado Pendiente", function() {
+    expect(res.body.estado).to.equal("Pendiente");
+  });
+  test("la mascota queda reservada", function() {
+    expect(res.body.mascotaId).to.equal(bru.getVar("mascotaId"));
+  });
+}
+

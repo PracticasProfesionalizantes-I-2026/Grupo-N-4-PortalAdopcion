@@ -1,0 +1,39 @@
+meta {
+  name: 02b Solicitudes lista
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/solicitudes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+script:post-response {
+  const solicitudes = res.getBody() || [];
+  const sancionable = bru.getVar("adoptanteSancionId");
+  const pendiente = solicitudes.find(s => s.estado === "Pendiente" && s.adoptanteId === sancionable);
+  if (pendiente) bru.setVar("solicitudPendienteId", pendiente.id);
+  const prueba = solicitudes.find(s => s.estado === "EnPeriodoDePrueba");
+  if (prueba) bru.setVar("solicitudPruebaId", prueba.id);
+}
+
+tests {
+  test("200 - listado de procesos", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("existe un proceso Pendiente para el adoptante demo", function() {
+    expect(bru.getVar("solicitudPendienteId")).to.not.equal(undefined);
+    expect(bru.getVar("solicitudPendienteId")).to.not.equal("");
+  });
+  test("existe un proceso EnPeriodoDePrueba", function() {
+    expect(bru.getVar("solicitudPruebaId")).to.not.equal(undefined);
+    expect(bru.getVar("solicitudPruebaId")).to.not.equal("");
+  });
+}
+

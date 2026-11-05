@@ -1,0 +1,71 @@
+@startuml
+'
+' Diagrama de estados (P3) - Portal de Adopcion
+' Fuente: PortalService.cs (08/10/2026)
+title Estados del proceso de adopcion
+
+state "Pendiente" as Pendiente
+state "En Observacion" as Obs
+state "Aprobada" as Aprob
+state "En Entrevista" as Entrev
+state "En Periodo de Prueba" as Prueba
+state "Adoptada" as Adoptada
+state "Rechazada" as Rechazada
+state "Cancelada" as Cancel
+state "Abandonada" as Aband
+
+[*] --> Pendiente : CU-02 Postular
+Pendiente --> Obs : CU-04 observar
+Pendiente --> Aprob : CU-04 aprobar (>=15 dias)
+Pendiente --> Rechazada : CU-04/CU-01
+Pendiente --> Cancel : CU-04 no disponible
+Obs --> Aprob : CU-04
+Obs --> Rechazada : CU-04/CU-01
+Aprob --> Entrev : CU-11 programar
+Entrev --> Prueba : CU-11 favorable
+Entrev --> Rechazada : CU-11 desfavorable
+Entrev --> Aband : CU-14 timeout
+Prueba --> Adoptada : CU-15 finalizar
+Pendiente --> Cancel : CU-13
+Obs --> Cancel : CU-13
+Aprob --> Cancel : CU-13
+Entrev --> Cancel : CU-13
+Prueba --> Cancel : CU-13 (+sancion)
+Rechazada --> [*]
+Cancel --> [*]
+Aband --> [*]
+Adoptada --> [*]
+
+title Estados de la mascota
+
+state "Disponible" as Disp
+state "Reservada" as Res
+state "En Entrevista" as EntM
+state "En Periodo de Prueba" as PrueM
+state "Adoptada" as AdopM
+state "En Tratamiento" as Tra
+state "Inactiva" as Ina
+
+[*] --> Disp : CU-09 Alta
+Disp --> Res : CU-02
+Res --> Disp : CU-04/CU-01/CU-13
+Res --> EntM : CU-11
+EntM --> PrueM : CU-11 favorable
+EntM --> Disp : CU-11/CU-14/CU-13
+PrueM --> AdopM : CU-15
+PrueM --> Disp : CU-13
+Disp <--> Tra : CU-09 admin
+Disp <--> Ina : CU-09 admin
+
+title Estados de la cuenta
+
+state "Activa" as Act
+state "Suspendida" as Sus
+state "Baja" as Baja
+
+[*] --> Act : CU-06/CU-08
+Act --> Sus : CU-08
+Act --> Baja : CU-08/CU-09
+Sus --> Act : CU-08
+Sus --> Baja : CU-08
+@enduml

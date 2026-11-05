@@ -1,0 +1,25 @@
+meta {
+  name: 07 Mi sesion
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+tests {
+  test("200 - sesión vigente", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("devuelve el usuario autenticado", function() {
+    expect(res.body.email).to.equal("admin@demo.local");
+  });
+}
+

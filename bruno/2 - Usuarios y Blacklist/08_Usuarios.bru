@@ -1,0 +1,40 @@
+meta {
+  name: 08 Usuarios
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/usuarios
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+script:post-response {
+  const usuarios = res.getBody() || [];
+  const voluntario = usuarios.find(u => u.rol === "Voluntario" && u.estado === "Activa");
+  if (voluntario) bru.setVar("voluntarioId", voluntario.id);
+  const libre = usuarios.find(u => u.email === "adoptante@demo.local");
+  if (libre) bru.setVar("adoptanteId", libre.adoptanteId);
+  const sancionable = usuarios.find(u => u.email === "adoptante2@demo.local");
+  if (sancionable) bru.setVar("adoptanteSancionId", sancionable.adoptanteId);
+}
+
+tests {
+  test("200 - listado de usuarios", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("incluye al menos un voluntario activo", function() {
+    const usuarios = res.getBody() || [];
+    expect(usuarios.some(u => u.rol === "Voluntario" && u.estado === "Activa")).to.equal(true);
+  });
+  test("los IDs de adoptante quedaron capturados", function() {
+    expect(bru.getVar("adoptanteId")).to.not.equal(undefined);
+    expect(bru.getVar("adoptanteId")).to.not.equal("");
+  });
+}
+

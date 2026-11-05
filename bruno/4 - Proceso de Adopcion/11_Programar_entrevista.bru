@@ -1,0 +1,36 @@
+meta {
+  name: 11 Programar entrevista
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/solicitudes/{{solicitudPendienteId}}/entrevista
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "fechaProgramada": "2026-12-01T15:00:00Z",
+    "voluntarioId": "{{voluntarioId}}"
+  }
+}
+
+tests {
+  test("201 - entrevista programada", function() {
+    expect(res.status).to.equal(201);
+  });
+  test("la entrevista queda asignada al voluntario", function() {
+    expect(res.body.voluntarioId).to.equal(bru.getVar("voluntarioId"));
+  });
+}
+

@@ -1,0 +1,20 @@
+meta {
+  name: 00 Reiniciar entorno demo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/demo/reiniciar
+  body: none
+  auth: none
+}
+
+tests {
+  test("200 - entorno demo reiniciado", function() {
+    expect(res.status).to.equal(200);
+  });
+  test("confirma el reinicio de los datos demo", function() {
+    expect(res.body.reiniciado).to.equal(true);
+  });
+}
