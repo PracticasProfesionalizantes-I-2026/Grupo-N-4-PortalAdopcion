@@ -35,7 +35,11 @@ public static class BusinessRules
     public const int MaxLongitudTipoEventoMedico = 100;
     public const int MaxLongitudEntidadAutorizante = 150;
 
+<<<<<<< HEAD
     public const string ContrasenaRequisitos = "5 a 20 caracteres, mayúscula, minúscula y número.";
+=======
+    public const string ContrasenaRequisitos = "5 a 15 caracteres, mayúscula, minúscula y número.";
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
 
     public static readonly string[] EstadosCiviles =
     [

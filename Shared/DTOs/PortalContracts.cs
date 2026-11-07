@@ -18,6 +18,7 @@ public record RegistroUsuarioDTO(
 
     [Required(ErrorMessage = "Ingresá el DNI.")]
     [RegularExpression(@"^\d+$", ErrorMessage = "El DNI debe contener solo números.")]
+<<<<<<< HEAD
     [StringLength(9, MinimumLength = 8, ErrorMessage = "El DNI debe tener entre 8 y 9 dígitos.")]
     string Dni,
 
@@ -32,17 +33,34 @@ public record RegistroUsuarioDTO(
 
     [Required(ErrorMessage = "Ingresá la dirección.")]
     [StringLength(20, ErrorMessage = "La dirección no puede superar los 20 caracteres.")]
+=======
+    string Dni,
+
+    [Required(ErrorMessage = "Ingresá la contraseña.")]
+    string Password,
+
+    [Required(ErrorMessage = "Ingresá el teléfono.")]
+    string Telefono,
+
+    [Required(ErrorMessage = "Ingresá la dirección.")]
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
     string Direccion,
 
     [Range(BusinessRules.MinEdadAdoptante, BusinessRules.MaxEdadAdoptante, ErrorMessage = "La edad debe estar entre 18 y 70 años.")]
     int Edad,
 
     [Required(ErrorMessage = "Ingresá el estado civil.")]
+<<<<<<< HEAD
     [AllowedValues(null, "Soltero/a", "Casado/a", "Divorciado/a", "Viudo/a", "Conviviente/Unión de hecho", "Separado/a", ErrorMessage = "Elegí un estado civil válido.")]
     string EstadoCivil,
 
     [Required(ErrorMessage = "Ingresá los datos laborales.")]
     [StringLength(300, ErrorMessage = "Los datos laborales no pueden superar los 300 caracteres.")]
+=======
+    string EstadoCivil,
+
+    [Required(ErrorMessage = "Ingresá los datos laborales.")]
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
     string DatosLaborales
 );
 
@@ -57,11 +75,15 @@ public record LoginDTO(
 
 public record PersonalDTO(
     [Required(ErrorMessage = "Ingresá el nombre.")]
+<<<<<<< HEAD
     [StringLength(15, ErrorMessage = "El nombre no puede superar los 15 caracteres.")]
+=======
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
     string Nombre,
 
     [Required(ErrorMessage = "Ingresá el email.")]
     [EmailAddress(ErrorMessage = "El campo email tiene un formato incorrecto.")]
+<<<<<<< HEAD
     [StringLength(50, ErrorMessage = "El email no puede superar los 50 caracteres.")]
     string Email,
 
@@ -76,6 +98,17 @@ public record PersonalDTO(
 
     [Required(ErrorMessage = "Ingresá el rol.")]
     [AllowedValues(null, "Administrador", "Voluntario", "Veterinario", ErrorMessage = "Elegí un rol válido.")]
+=======
+    string Email,
+
+    [Required(ErrorMessage = "Ingresá el DNI.")]
+    string Dni,
+
+    [Required(ErrorMessage = "Ingresá la contraseña.")]
+    string Password,
+
+    [Required(ErrorMessage = "Ingresá el rol.")]
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
     string Rol,
 
     string? Matricula
@@ -102,6 +135,7 @@ public record PerfilDTO(
 
     [Required(ErrorMessage = "Ingresá el DNI.")]
     [RegularExpression(@"^\d+$", ErrorMessage = "El DNI debe contener solo números.")]
+<<<<<<< HEAD
     [StringLength(9, MinimumLength = 8, ErrorMessage = "El DNI debe tener entre 8 y 9 dígitos.")]
     string Dni,
 
@@ -112,17 +146,31 @@ public record PerfilDTO(
 
     [Required(ErrorMessage = "Ingresá la dirección.")]
     [StringLength(20, ErrorMessage = "La dirección no puede superar los 20 caracteres.")]
+=======
+    string Dni,
+
+    [Required(ErrorMessage = "Ingresá el teléfono.")]
+    string Telefono,
+
+    [Required(ErrorMessage = "Ingresá la dirección.")]
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
     string Direccion,
 
     [Range(BusinessRules.MinEdadAdoptante, BusinessRules.MaxEdadAdoptante, ErrorMessage = "La edad debe estar entre 18 y 70 años.")]
     int Edad,
 
     [Required(ErrorMessage = "Ingresá el estado civil.")]
+<<<<<<< HEAD
     [AllowedValues(null, "Soltero/a", "Casado/a", "Divorciado/a", "Viudo/a", "Conviviente/Unión de hecho", "Separado/a", ErrorMessage = "Elegí un estado civil válido.")]
     string EstadoCivil,
 
     [Required(ErrorMessage = "Ingresá los datos laborales.")]
     [StringLength(300, ErrorMessage = "Los datos laborales no pueden superar los 300 caracteres.")]
+=======
+    string EstadoCivil,
+
+    [Required(ErrorMessage = "Ingresá los datos laborales.")]
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
     string DatosLaborales
 );
 
@@ -133,6 +181,7 @@ public record MascotaFichaDTO(
 
     [Required(ErrorMessage = "Ingresá la especie.")]
     [EnumDataType(typeof(EspecieEnum), ErrorMessage = "Elegí una opción válida para especie.")]
+<<<<<<< HEAD
     EspecieEnum? Especie,
 
     [Required(ErrorMessage = "Ingresá la raza.")]
@@ -146,6 +195,19 @@ public record MascotaFichaDTO(
     [Required(ErrorMessage = "Ingresá el sexo.")]
     [EnumDataType(typeof(SexoEnum), ErrorMessage = "Elegí una opción válida para sexo.")]
     SexoEnum? Sexo,
+=======
+    EspecieEnum Especie,
+
+    [StringLength(BusinessRules.MaxLongitudRaza, ErrorMessage = "La raza no puede superar los 40 caracteres.")]
+    string? Raza,
+
+    [Range(BusinessRules.MinEdadMascota, BusinessRules.MaxEdadMascota, ErrorMessage = "La edad debe estar entre 0 y 20 años.")]
+    int Edad,
+
+    [Required(ErrorMessage = "Ingresá el sexo.")]
+    [EnumDataType(typeof(SexoEnum), ErrorMessage = "Elegí una opción válida para sexo.")]
+    SexoEnum Sexo,
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
 
     string? FotoUrl,
 
@@ -155,7 +217,11 @@ public record MascotaFichaDTO(
     [Range(0.01, 130.0, ErrorMessage = "El peso debe ser mayor a 0 kg.")]
     decimal? Peso = null,
 
+<<<<<<< HEAD
     [AllowedValues(null, "Saludable", "Bien", "Excelente", "Bueno", "Regular", "Malo", "Crítico", ErrorMessage = "Elegí un estado general válido.")]
+=======
+    [AllowedValues("Saludable", "Bien", "Excelente", "Bueno", "Regular", "Malo", "Crítico", ErrorMessage = "Elegí un estado general válido.")]
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
     string? EstadoGeneral = null,
 
     string? Vacunas = null
@@ -245,7 +311,10 @@ public record ResultadoEntrevistaDTO(
     [Required(ErrorMessage = "Ingresá el resultado.")]
     string Resultado,
 
+<<<<<<< HEAD
     [Required(ErrorMessage = "Ingresá las observaciones.")]
+=======
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
     string Observaciones
 );
 

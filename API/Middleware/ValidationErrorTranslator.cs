@@ -3,7 +3,10 @@ namespace PortalAdopcion.API.Middleware;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+<<<<<<< HEAD
 using PortalAdopcion.Shared.Constants;
+=======
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
 using PortalAdopcion.Shared.DTOs;
 using PortalAdopcion.Shared.Exceptions;
 
@@ -11,6 +14,7 @@ public static class ValidationErrorTranslator
 {
     private static readonly Regex PathRegex = new(@"Path:\s*\$?\.?([a-zA-Z0-9_\.]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex RequiredFieldRegex = new(@"The\s+(\w+)\s+field is required", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+<<<<<<< HEAD
     // "Campo: detalle" (acepta tildes y espacios: "Teléfono: ...", "Estado civil: ...")
     private static readonly Regex PropertyColonRegex = new(@"^(?<campo>[\p{L}0-9/ ]{1,40}?)\s*:\s*(?<detalle>.+)$", RegexOptions.Compiled);
     private static readonly Regex EdadRegex = new(@"^Edad( del adoptante)?:\s*(\d+) a (\d+) años\.?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -74,6 +78,9 @@ public static class ValidationErrorTranslator
         ["Tipo: solicitudes, adopciones o mascotas."] = ("tipo", "Elegí solicitudes, adopciones o mascotas."),
         ["Formato: csv o pdf."] = ("formato", "Elegí csv o pdf."),
     };
+=======
+    private static readonly Regex PropertyColonRegex = new(@"^([a-zA-Z0-9_]+)\s*:\s*(.+)$", RegexOptions.Compiled);
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
 
     public static ErrorResponseDTO CreateResponse(ModelStateDictionary modelState)
     {
@@ -240,6 +247,7 @@ public static class ValidationErrorTranslator
         // 4. Enum o tipo no convertible
         if (msg.Contains("could not be converted", StringComparison.OrdinalIgnoreCase))
         {
+<<<<<<< HEAD
             if (msg.Contains("DateTime", StringComparison.OrdinalIgnoreCase))
                 return $"El campo {field} debe ser una fecha válida.";
             if (msg.Contains("Int32", StringComparison.OrdinalIgnoreCase) || msg.Contains("Int64", StringComparison.OrdinalIgnoreCase) ||
@@ -247,6 +255,8 @@ public static class ValidationErrorTranslator
                 return $"El campo {field} debe ser un número.";
             if (msg.Contains("Guid", StringComparison.OrdinalIgnoreCase))
                 return $"El campo {field} no es un identificador válido.";
+=======
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
             if (field.Equals("especie", StringComparison.OrdinalIgnoreCase))
                 return "Elegí una opción válida para especie.";
             if (field.Equals("sexo", StringComparison.OrdinalIgnoreCase))
@@ -280,9 +290,14 @@ public static class ValidationErrorTranslator
         }
 
         // 8. Estado general inválido
+<<<<<<< HEAD
         if (IsTechnicalEnglishMessage(msg) &&
             (msg.Contains("estado general", StringComparison.OrdinalIgnoreCase) ||
              field.Equals("estadoGeneral", StringComparison.OrdinalIgnoreCase)))
+=======
+        if (msg.Contains("estado general", StringComparison.OrdinalIgnoreCase) ||
+            field.Equals("estadoGeneral", StringComparison.OrdinalIgnoreCase))
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
         {
             return "Elegí un estado general válido.";
         }
@@ -301,6 +316,7 @@ public static class ValidationErrorTranslator
     {
         var msg = rawMessage?.Trim() ?? string.Empty;
 
+<<<<<<< HEAD
         if (MensajesFijos.TryGetValue(msg, out var fijo))
             return fijo;
 
@@ -313,10 +329,44 @@ public static class ValidationErrorTranslator
         var edad = EdadRegex.Match(msg);
         if (edad.Success)
             return ("edad", $"La edad debe estar entre {edad.Groups[2].Value} y {edad.Groups[3].Value} años.");
+=======
+        if (msg.Equals("Peso inválido.", StringComparison.OrdinalIgnoreCase) ||
+            msg.Contains("peso", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("peso", "El peso debe ser mayor a 0 kg.");
+        }
+
+        if (msg.Equals("Estado general inválido.", StringComparison.OrdinalIgnoreCase) ||
+            msg.Contains("estado general", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("estadoGeneral", "Elegí un estado general válido.");
+        }
+
+        if (msg.Contains("email", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("email", "Ingresá un email válido.");
+        }
+
+        if (msg.Contains("contraseña", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("password", "La contraseña no cumple los requisitos.");
+        }
+
+        if (msg.Contains("edad", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("edad", "La edad ingresada no es válida.");
+        }
+
+        if (msg.Contains("formato", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("formato", "Elegí una opción válida para formato.");
+        }
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
 
         var match = PropertyColonRegex.Match(msg);
         if (match.Success)
         {
+<<<<<<< HEAD
             var campo = match.Groups["campo"].Value.Trim();
             var detalle = match.Groups["detalle"].Value.Trim();
             var (key, noun) = Campos.TryGetValue(campo, out var conocido)
@@ -339,6 +389,16 @@ public static class ValidationErrorTranslator
                 return (key, $"{sujeto} debe tener al menos {numero} dígitos.");
 
             return (key, detalle);
+=======
+            var rawField = match.Groups[1].Value.Trim();
+            var detail = match.Groups[2].Value.Trim();
+            var fieldName = JsonNamingPolicy.CamelCase.ConvertName(rawField);
+
+            if (detail.Contains("obligatorio", StringComparison.OrdinalIgnoreCase))
+                return (fieldName, $"Ingresá el {fieldName}.");
+
+            return (fieldName, detail);
+>>>>>>> 05d51a7c0e078ef46f34c48e2476860fa14f4bf6
         }
 
         return ("solicitud", msg);
