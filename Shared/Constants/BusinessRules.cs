@@ -2,16 +2,16 @@ namespace PortalAdopcion.Shared.Constants;
 
 public static class BusinessRules
 {
-    public const int PasswordMinLength = 10;
-    public const int PasswordMaxLength = 128;
+    public const int PasswordMinLength = 5;
+    public const int PasswordMaxLength = 20;
 
     public const int MinEdadAdoptante = 18;
-    public const int MaxEdadAdoptante = 120;
+    public const int MaxEdadAdoptante = 70;
 
     public const int MinEdadMascota = 0;
-    public const int MaxEdadMascota = 30;
+    public const int MaxEdadMascota = 20;
     public const int MinPesoMascota = 0;
-    public const int MaxPesoMascota = 300;
+    public const int MaxPesoMascota = 130;
 
     public const int MinDiasAntesAprobacion = 15;
     public const int MinDiasPeriodoPrueba = 15;
@@ -19,22 +19,23 @@ public static class BusinessRules
     public const int MaxProcesosActivosPorVoluntario = 2;
     public const int AniosSancionCancelacionPrueba = 1;
 
-    public const int MaxLongitudTexto = 1000;
-    public const int MaxLongitudNombre = 150;
-    public const int MaxLongitudNombreMascota = 100;
-    public const int MaxLongitudEmail = 150;
-    public const int MaxLongitudDni = 20;
-    public const int MaxLongitudTelefono = 30;
-    public const int MaxLongitudDireccion = 200;
+    public const int MaxLongitudTexto = 100;
+    public const int MaxLongitudNombre = 15;
+    public const int MaxLongitudNombreMascota = 15;
+    public const int MaxLongitudEmail = 50;
+    public const int MinLongitudDni = 8;
+    public const int MaxLongitudDni = 9;
+    public const int MaxLongitudTelefono = 20;
+    public const int MaxLongitudDireccion = 20;
     public const int MaxLongitudEstadoCivil = 50;
     public const int MaxLongitudDatosLaborales = 300;
     public const int MaxLongitudMatricula = 50;
     public const int MaxLongitudChip = 80;
-    public const int MaxLongitudRaza = 100;
+    public const int MaxLongitudRaza = 40;
     public const int MaxLongitudTipoEventoMedico = 100;
     public const int MaxLongitudEntidadAutorizante = 150;
 
-    public const string ContrasenaRequisitos = "10 a 128 caracteres, mayúscula, minúscula y número.";
+    public const string ContrasenaRequisitos = "5 a 15 caracteres, mayúscula, minúscula y número.";
 
     public static readonly string[] EstadosCiviles =
     [
@@ -44,6 +45,17 @@ public static class BusinessRules
         "Viudo/a",
         "Conviviente/Unión de hecho",
         "Separado/a"
+    ];
+
+    public static readonly string[] EstadosGenerales =
+    [
+        "Saludable",
+        "Bien",
+        "Excelente",
+        "Bueno",
+        "Regular",
+        "Malo",
+        "Crítico"
     ];
 }
 

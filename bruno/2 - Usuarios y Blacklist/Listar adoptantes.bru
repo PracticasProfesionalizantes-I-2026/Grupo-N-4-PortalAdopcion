@@ -1,0 +1,16 @@
+meta {
+  name: Listar adoptantes
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/adoptantes
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  forwardAuthorizationHeader: false
+}

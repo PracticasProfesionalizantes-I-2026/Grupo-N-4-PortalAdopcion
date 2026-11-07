@@ -1,4 +1,7 @@
 namespace PortalAdopcion.API.Middleware;
+
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using PortalAdopcion.Shared.Exceptions;
 
 public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
@@ -9,11 +12,30 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         {
             await next(ctx);
         }
-        catch (Exception ex) when (ex is ValidationException or ConflictException or NotFoundException or AccessException or AuthenticationException)
+        catch (ValidationException ex)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            var response = ValidationErrorTranslator.FromValidationException(ex);
+            await ctx.Response.WriteAsJsonAsync(
+                response,
+                options: (JsonSerializerOptions?)null,
+                contentType: "application/json",
+                cancellationToken: ctx.RequestAborted);
+        }
+        catch (Exception ex) when (ex is JsonException or BadHttpRequestException)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            var response = ValidationErrorTranslator.FromJsonException(ex);
+            await ctx.Response.WriteAsJsonAsync(
+                response,
+                options: (JsonSerializerOptions?)null,
+                contentType: "application/json",
+                cancellationToken: ctx.RequestAborted);
+        }
+        catch (Exception ex) when (ex is ConflictException or NotFoundException or AccessException or AuthenticationException)
         {
             ctx.Response.StatusCode = ex switch
             {
-                ValidationException => StatusCodes.Status400BadRequest,
                 ConflictException => StatusCodes.Status409Conflict,
                 NotFoundException => StatusCodes.Status404NotFound,
                 AccessException => StatusCodes.Status403Forbidden,
@@ -21,7 +43,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             };
             await ctx.Response.WriteAsJsonAsync(
                 new { type = "about:blank", title = ex.Message, status = ctx.Response.StatusCode, traceId = ctx.TraceIdentifier },
-                options: (System.Text.Json.JsonSerializerOptions?)null,
+                options: (JsonSerializerOptions?)null,
                 contentType: "application/problem+json",
                 cancellationToken: ctx.RequestAborted);
         }
@@ -31,7 +53,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
             await ctx.Response.WriteAsJsonAsync(
                 new { type = "about:blank", title = "Error interno. Consultá el registro del servidor.", status = 500, traceId = ctx.TraceIdentifier },
-                options: (System.Text.Json.JsonSerializerOptions?)null,
+                options: (JsonSerializerOptions?)null,
                 contentType: "application/problem+json",
                 cancellationToken: ctx.RequestAborted);
         }
