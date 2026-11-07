@@ -1,4 +1,5 @@
 namespace PortalAdopcion.BusinessLogic.Abstractions;
+
 using PortalAdopcion.Shared.DTOs;
 using PortalAdopcion.Shared.Enums;
 using PortalAdopcion.DataAccess.Entities;

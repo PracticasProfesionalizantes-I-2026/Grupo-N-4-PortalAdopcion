@@ -15,3 +15,4 @@ public record AuditoriaResponseDTO(Guid Id, long Version, Guid UsuarioId, DateTi
 public record NotificacionResponseDTO(Guid Id, long Version, Guid? UsuarioId, string? Rol, string Mensaje, DateTime Fecha, Guid EntidadId, string Canal, string? Destino);
 public record HistorialDetalleResponseDTO(HistorialResponseDTO Historial, IReadOnlyList<EventoMedicoResponseDTO> Eventos);
 public record SesionResponseDTO(string Token, DateTime Expires, UsuarioResponseDTO Usuario);
+public record ErrorResponseDTO(int Status, string Title, Dictionary<string, string[]> Errors);

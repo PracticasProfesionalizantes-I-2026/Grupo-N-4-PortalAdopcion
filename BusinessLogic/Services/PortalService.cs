@@ -1,4 +1,5 @@
 namespace PortalAdopcion.BusinessLogic.Services;
+
 using System.Net.Mail;
 using System.Security.Cryptography;
 using PortalAdopcion.BusinessLogic.Abstractions;
@@ -32,11 +33,13 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         return s.Trim();
     }
 
-    private static string Numeric(string? s, string campo, int max)
+    private static string Numeric(string? s, string campo, int max, int min = 0, bool allowNegative = true)
     {
         var v = Text(s, campo, max);
         // Normalizar separadores comunes que el usuario puede introducir (espacio NBSP, guiones largos, puntos medios).
         v = v.Replace('\u00A0', ' ').Replace('·', '.').Replace('•', '.').Replace('–', '-').Replace('—', '-');
+        if (!allowNegative && v.TrimStart().StartsWith('-'))
+            throw new ValidationException($"{campo}: no se permiten valores negativos.");
         // Permitir que el usuario pase separadores (puntos, guiones, espacios).
         // Rechazar otros caracteres (letras, símbolos) y normalizar a solo dígitos ASCII.
         var invalidChars = v.Where(c => !((c >= '0' && c <= '9') || c == '.' || c == '-' || char.IsWhiteSpace(c))).Distinct().ToArray();
@@ -47,6 +50,8 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             throw new ValidationException($"{campo}: valor obligatorio de hasta {max} dígitos.");
         if (digits.Length > max)
             throw new ValidationException($"{campo}: máximo {max} dígitos permitidos.");
+        if (digits.Length < min)
+            throw new ValidationException($"{campo}: mínimo {min} dígitos permitidos.");
         return digits;
     }
 
@@ -91,7 +96,7 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         {
             NombreCompleto = Text(d.NombreCompleto, "Nombre", BusinessRules.MaxLongitudNombre),
             Email = Email(d.Email),
-            Dni = Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni),
+            Dni = Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni, BusinessRules.MinLongitudDni, allowNegative: false),
             Telefono = Numeric(d.Telefono, "Teléfono", BusinessRules.MaxLongitudTelefono),
             Direccion = Text(d.Direccion, "Dirección", BusinessRules.MaxLongitudDireccion),
             Edad = d.Edad,
@@ -150,7 +155,7 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         if (!Roles.Contains(d.Rol) || d.Rol == "Adoptante")
             throw new ValidationException("Rol de personal inválido.");
         var email = Email(d.Email);
-        var dni = Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni);
+        var dni = Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni, BusinessRules.MinLongitudDni, allowNegative: false);
         var matricula = d.Rol == "Veterinario" ? Text(d.Matricula, "Matrícula", BusinessRules.MaxLongitudMatricula) : null;
         if (await repo.AnyAsync<Usuario>(x => x.Email == email || x.Dni == dni || (matricula != null && x.Matricula == matricula)))
             throw new ConflictException("Email, DNI o matrícula duplicados.");
@@ -226,7 +231,7 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         if (a.Rol == "Adoptante" && a.AdoptanteId != id)
             throw new AccessException("Solo podés editar tu perfil.");
         var p = await Find<Adoptante>(id);
-        if (Email(d.Email) != p.Email || Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni) != p.Dni)
+        if (Email(d.Email) != p.Email || Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni, BusinessRules.MinLongitudDni, allowNegative: false) != p.Dni)
             throw new ConflictException("Email y DNI de identidad no se modifican en esta versión.");
         if (d.Edad < BusinessRules.MinEdadAdoptante || d.Edad > BusinessRules.MaxEdadAdoptante)
             throw new ValidationException("Edad inválida.");
@@ -275,15 +280,21 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
     private static void PetData(Mascota m, MascotaFichaDTO d)
     {
         m.Nombre = Text(d.Nombre, "Nombre", BusinessRules.MaxLongitudNombreMascota);
-        EnumValid(d.Especie);
-        EnumValid(d.Sexo);
+        if (d.Especie is null)
+            throw new ValidationException("Especie: valor obligatorio.");
+        if (d.Sexo is null)
+            throw new ValidationException("Sexo: valor obligatorio.");
+        if (d.Edad is null)
+            throw new ValidationException("Edad: valor obligatorio.");
+        EnumValid(d.Especie.Value);
+        EnumValid(d.Sexo.Value);
         if (d.Edad < BusinessRules.MinEdadMascota || d.Edad > BusinessRules.MaxEdadMascota)
             throw new ValidationException($"Edad: {BusinessRules.MinEdadMascota} a {BusinessRules.MaxEdadMascota} años.");
         if (d.FotoUrl != null && d.FotoUrl != "" && (!Uri.TryCreate(d.FotoUrl, UriKind.Absolute, out var url) || url.Scheme != "https"))
             throw new ValidationException("Foto: URL HTTPS válida.");
-        m.Especie = d.Especie;
-        m.Sexo = d.Sexo;
-        m.Edad = d.Edad;
+        m.Especie = d.Especie.Value;
+        m.Sexo = d.Sexo.Value;
+        m.Edad = d.Edad.Value;
         m.Raza = d.Raza?.Trim();
         if (m.Raza?.Length > BusinessRules.MaxLongitudRaza)
             throw new ValidationException("Raza demasiado larga.");
@@ -732,6 +743,8 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             throw new ValidationException("Peso inválido.");
         if (await repo.AnyAsync<HistorialClinico>(x => x.MascotaId == pet))
             throw new ConflictException("El historial ya existe.");
+        if (!BusinessRules.EstadosGenerales.Contains(d.EstadoGeneral, StringComparer.OrdinalIgnoreCase))
+            throw new ValidationException("Estado general inválido.");
         var h = new HistorialClinico
         {
             MascotaId = pet,
