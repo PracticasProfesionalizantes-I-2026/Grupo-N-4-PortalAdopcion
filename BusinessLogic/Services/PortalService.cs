@@ -1,4 +1,5 @@
 namespace PortalAdopcion.BusinessLogic.Services;
+
 using System.Net.Mail;
 using System.Security.Cryptography;
 using PortalAdopcion.BusinessLogic.Abstractions;
@@ -32,11 +33,13 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         return s.Trim();
     }
 
-    private static string Numeric(string? s, string campo, int max)
+    private static string Numeric(string? s, string campo, int max, int min = 0, bool allowNegative = true)
     {
         var v = Text(s, campo, max);
         // Normalizar separadores comunes que el usuario puede introducir (espacio NBSP, guiones largos, puntos medios).
         v = v.Replace('\u00A0', ' ').Replace('·', '.').Replace('•', '.').Replace('–', '-').Replace('—', '-');
+        if (!allowNegative && v.TrimStart().StartsWith('-'))
+            throw new ValidationException($"{campo}: no se permiten valores negativos.");
         // Permitir que el usuario pase separadores (puntos, guiones, espacios).
         // Rechazar otros caracteres (letras, símbolos) y normalizar a solo dígitos ASCII.
         var invalidChars = v.Where(c => !((c >= '0' && c <= '9') || c == '.' || c == '-' || char.IsWhiteSpace(c))).Distinct().ToArray();
@@ -47,6 +50,8 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             throw new ValidationException($"{campo}: valor obligatorio de hasta {max} dígitos.");
         if (digits.Length > max)
             throw new ValidationException($"{campo}: máximo {max} dígitos permitidos.");
+        if (digits.Length < min)
+            throw new ValidationException($"{campo}: mínimo {min} dígitos permitidos.");
         return digits;
     }
 
@@ -91,7 +96,7 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         {
             NombreCompleto = Text(d.NombreCompleto, "Nombre", BusinessRules.MaxLongitudNombre),
             Email = Email(d.Email),
-            Dni = Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni),
+            Dni = Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni, BusinessRules.MinLongitudDni, allowNegative: false),
             Telefono = Numeric(d.Telefono, "Teléfono", BusinessRules.MaxLongitudTelefono),
             Direccion = Text(d.Direccion, "Dirección", BusinessRules.MaxLongitudDireccion),
             Edad = d.Edad,
@@ -150,7 +155,7 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         if (!Roles.Contains(d.Rol) || d.Rol == "Adoptante")
             throw new ValidationException("Rol de personal inválido.");
         var email = Email(d.Email);
-        var dni = Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni);
+        var dni = Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni, BusinessRules.MinLongitudDni, allowNegative: false);
         var matricula = d.Rol == "Veterinario" ? Text(d.Matricula, "Matrícula", BusinessRules.MaxLongitudMatricula) : null;
         if (await repo.AnyAsync<Usuario>(x => x.Email == email || x.Dni == dni || (matricula != null && x.Matricula == matricula)))
             throw new ConflictException("Email, DNI o matrícula duplicados.");
@@ -199,8 +204,16 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             return (await repo.ListAsync<Adoptante>(x => x.Id == a.AdoptanteId!.Value)).Select(x => x.ToDto()).ToList();
         }
 
-        if (a.Rol is "Administrador" or "Voluntario")
+        if (a.Rol == "Administrador")
             return (await repo.ListAsync<Adoptante>()).Select(x => x.ToDto()).ToList();
+        if (a.Rol == "Voluntario")
+        {
+            var visibles = await repo.ListAsync<SolicitudDeAdopcion>(x =>
+                x.VoluntarioId == a.Id ||
+                (x.VoluntarioId == null && (x.Estado == EstadoSolicitudEnum.Pendiente || x.Estado == EstadoSolicitudEnum.EnObservacion)));
+            var perfiles = visibles.Select(x => x.AdoptanteId).Distinct().ToArray();
+            return (await repo.ListAsync<Adoptante>(x => perfiles.Contains(x.Id))).Select(x => x.ToDto()).ToList();
+        }
         throw new AccessException("Acceso restringido.");
     }
 
@@ -209,6 +222,10 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         Require(a, "Administrador", "Voluntario", "Adoptante");
         if (a.Rol == "Adoptante" && a.AdoptanteId != id)
             throw new AccessException("Solo podés consultar tu perfil.");
+        if (a.Rol == "Voluntario" && !await repo.AnyAsync<SolicitudDeAdopcion>(x =>
+            x.AdoptanteId == id && (x.VoluntarioId == a.Id ||
+            (x.VoluntarioId == null && (x.Estado == EstadoSolicitudEnum.Pendiente || x.Estado == EstadoSolicitudEnum.EnObservacion)))))
+            throw new AccessException("Solo podés consultar perfiles de solicitudes disponibles para evaluación o procesos asignados.");
         return (await Find<Adoptante>(id)).ToDto();
     }
 
@@ -226,15 +243,23 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         if (a.Rol == "Adoptante" && a.AdoptanteId != id)
             throw new AccessException("Solo podés editar tu perfil.");
         var p = await Find<Adoptante>(id);
-        if (Email(d.Email) != p.Email || Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni) != p.Dni)
+        if (Email(d.Email) != p.Email || Numeric(d.Dni, "DNI", BusinessRules.MaxLongitudDni, BusinessRules.MinLongitudDni, allowNegative: false) != p.Dni)
             throw new ConflictException("Email y DNI de identidad no se modifican en esta versión.");
         if (d.Edad < BusinessRules.MinEdadAdoptante || d.Edad > BusinessRules.MaxEdadAdoptante)
             throw new ValidationException("Edad inválida.");
+        if (a.Rol == "Voluntario" && !await repo.AnyAsync<SolicitudDeAdopcion>(x =>
+            x.AdoptanteId == id && (x.VoluntarioId == a.Id ||
+            (x.VoluntarioId == null && (x.Estado == EstadoSolicitudEnum.Pendiente || x.Estado == EstadoSolicitudEnum.EnObservacion)))))
+            throw new AccessException("Solo podés editar perfiles de solicitudes disponibles para evaluación o procesos asignados.");
+        var procesoActivo = await repo.AnyAsync<SolicitudDeAdopcion>(x => x.AdoptanteId == id && EstadosActivos.Contains(x.Estado));
+        var estadoCivil = Civil(d.EstadoCivil);
+        if (procesoActivo && (p.Edad != d.Edad || p.EstadoCivil != estadoCivil))
+            throw new ConflictException("No se puede modificar la edad ni el estado civil durante un proceso de adopción activo.");
         p.NombreCompleto = Text(d.NombreCompleto, "Nombre", BusinessRules.MaxLongitudNombre);
         p.Telefono = Numeric(d.Telefono, "Teléfono", BusinessRules.MaxLongitudTelefono);
         p.Direccion = Text(d.Direccion, "Dirección", BusinessRules.MaxLongitudDireccion);
         p.Edad = d.Edad;
-        p.EstadoCivil = Civil(d.EstadoCivil);
+        p.EstadoCivil = estadoCivil;
         p.DatosLaborales = Text(d.DatosLaborales, "Datos laborales", BusinessRules.MaxLongitudDatosLaborales);
         await Save(a, "Perfil Edición", id, "Datos de perfil", new Cambio(p));
         return p.ToDto();
@@ -275,15 +300,21 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
     private static void PetData(Mascota m, MascotaFichaDTO d)
     {
         m.Nombre = Text(d.Nombre, "Nombre", BusinessRules.MaxLongitudNombreMascota);
-        EnumValid(d.Especie);
-        EnumValid(d.Sexo);
+        if (d.Especie is null)
+            throw new ValidationException("Especie: valor obligatorio.");
+        if (d.Sexo is null)
+            throw new ValidationException("Sexo: valor obligatorio.");
+        if (d.Edad is null)
+            throw new ValidationException("Edad: valor obligatorio.");
+        EnumValid(d.Especie.Value);
+        EnumValid(d.Sexo.Value);
         if (d.Edad < BusinessRules.MinEdadMascota || d.Edad > BusinessRules.MaxEdadMascota)
             throw new ValidationException($"Edad: {BusinessRules.MinEdadMascota} a {BusinessRules.MaxEdadMascota} años.");
         if (d.FotoUrl != null && d.FotoUrl != "" && (!Uri.TryCreate(d.FotoUrl, UriKind.Absolute, out var url) || url.Scheme != "https"))
             throw new ValidationException("Foto: URL HTTPS válida.");
-        m.Especie = d.Especie;
-        m.Sexo = d.Sexo;
-        m.Edad = d.Edad;
+        m.Especie = d.Especie.Value;
+        m.Sexo = d.Sexo.Value;
+        m.Edad = d.Edad.Value;
         m.Raza = d.Raza?.Trim();
         if (m.Raza?.Length > BusinessRules.MaxLongitudRaza)
             throw new ValidationException("Raza demasiado larga.");
@@ -398,7 +429,12 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             return (await repo.ListAsync<SolicitudDeAdopcion>(x => x.AdoptanteId == a.AdoptanteId!.Value))
                 .OrderByDescending(x => x.FechaSolicitud).Select(x => x.ToDto()).ToList();
         }
-
+        if (a.Rol == "Voluntario")
+            return (await repo.ListAsync<SolicitudDeAdopcion>(x =>
+                x.VoluntarioId == a.Id ||
+                (x.VoluntarioId == null && (x.Estado == EstadoSolicitudEnum.Pendiente || x.Estado == EstadoSolicitudEnum.EnObservacion))))
+                .OrderByDescending(x => x.FechaSolicitud).Select(x => x.ToDto()).ToList();
+        Require(a, "Administrador", "Veterinario");
         return (await repo.ListAsync<SolicitudDeAdopcion>())
             .OrderByDescending(x => x.FechaSolicitud).Select(x => x.ToDto()).ToList();
     }
@@ -406,7 +442,15 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
     public async Task<SolicitudResponseDTO> RequestAsync(Actor a, Guid id)
     {
         var s = await Find<SolicitudDeAdopcion>(id);
-        Own(a, s);
+        if (a.Rol == "Adoptante")
+            Own(a, s);
+        else if (a.Rol == "Voluntario")
+        {
+            if (s.VoluntarioId != a.Id && !(s.VoluntarioId is null && (s.Estado is EstadoSolicitudEnum.Pendiente or EstadoSolicitudEnum.EnObservacion)))
+                throw new AccessException("La solicitud no está asignada a vos ni disponible para evaluación.");
+        }
+        else
+            Require(a, "Administrador", "Veterinario");
         return s.ToDto();
     }
 
@@ -488,7 +532,10 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
     {
         Require(a, "Administrador", "Voluntario", "Adoptante");
         var s = await Find<SolicitudDeAdopcion>(id);
-        Own(a, s);
+        if (a.Rol == "Adoptante")
+            Own(a, s);
+        else if (a.Rol == "Voluntario")
+            Assigned(a, s);
         if (!Activa(s.Estado))
             throw new ConflictException("El proceso ya terminó.");
         reason = Text(reason, "Motivo");
@@ -512,6 +559,8 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         var s = await Find<SolicitudDeAdopcion>(id);
         if (s.Estado != EstadoSolicitudEnum.Aprobada)
             throw new ConflictException("La solicitud debe estar aprobada.");
+        if (a.Rol == "Voluntario" && ((s.VoluntarioId.HasValue && s.VoluntarioId != a.Id) || d.VoluntarioId != a.Id))
+            throw new AccessException("Un voluntario solo puede asignarse entrevistas a sí mismo y no puede tomar procesos de otro voluntario.");
         var volunteer = await Find<Usuario>(d.VoluntarioId);
         if (volunteer.Rol != "Voluntario" || volunteer.Estado != "Activa")
             throw new ValidationException("Voluntario no habilitado.");
@@ -537,7 +586,12 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
     public async Task<List<EntrevistaResponseDTO>> InterviewsAsync(Actor a, Guid id)
     {
         var s = await Find<SolicitudDeAdopcion>(id);
-        Own(a, s);
+        if (a.Rol == "Voluntario")
+            Assigned(a, s);
+        else if (a.Rol == "Adoptante")
+            Own(a, s);
+        else
+            Require(a, "Administrador", "Veterinario");
         return (await repo.ListAsync<Entrevista>(x => x.SolicitudId == id)).Select(x => x.ToDto()).ToList();
     }
 
@@ -584,7 +638,12 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
     public async Task<List<SeguimientoResponseDTO>> FollowupsAsync(Actor a, Guid id)
     {
         var s = await Find<SolicitudDeAdopcion>(id);
-        Own(a, s);
+        if (a.Rol == "Voluntario")
+            Assigned(a, s);
+        else if (a.Rol == "Adoptante")
+            Own(a, s);
+        else
+            Require(a, "Administrador", "Veterinario");
         return (await repo.ListAsync<Seguimiento>(x => x.SolicitudId == id)).OrderBy(x => x.Fecha).Select(x => x.ToDto()).ToList();
     }
 
@@ -730,8 +789,10 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         await Find<Mascota>(pet);
         if (d.Peso <= BusinessRules.MinPesoMascota || d.Peso > BusinessRules.MaxPesoMascota)
             throw new ValidationException("Peso inválido.");
-        if (await repo.AnyAsync<HistorialClinico>(x => x.MascotaId == pet))
-            throw new ConflictException("El historial ya existe.");
+        if (await repo.AnyAsync<HistorialClinico>(x => x.MascotaId == pet || x.OrigenMascotaId == pet))
+            throw new ConflictException("El historial ya existe o fue transferido al adoptante.");
+        if (!BusinessRules.EstadosGenerales.Contains(d.EstadoGeneral, StringComparer.OrdinalIgnoreCase))
+            throw new ValidationException("Estado general inválido.");
         var h = new HistorialClinico
         {
             MascotaId = pet,
@@ -826,9 +887,12 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         Require(a, "Administrador");
         if (desde > hasta)
             throw new ValidationException("Rango inválido.");
+        var hastaLimite = hasta.HasValue && hasta.Value.TimeOfDay == TimeSpan.Zero
+            ? hasta.Value.Date.AddDays(1).AddTicks(-1)
+            : hasta;
         var eventos = await repo.ListAsync<EventoAuditoria>(x =>
             (desde == null || x.Fecha >= desde) &&
-            (hasta == null || x.Fecha <= hasta) &&
+            (hastaLimite == null || x.Fecha <= hastaLimite) &&
             (usuario == null || x.UsuarioId == usuario));
         return eventos
             .Where(x => string.IsNullOrWhiteSpace(accion) || x.Accion.Contains(accion, StringComparison.OrdinalIgnoreCase))
@@ -841,25 +905,28 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         Require(a, "Administrador");
         if (desde > hasta)
             throw new ValidationException("Rango de fechas inválido.");
+        var hastaLimite = hasta.TimeOfDay == TimeSpan.Zero
+            ? hasta.Date.AddDays(1).AddTicks(-1)
+            : hasta;
         var rows = new List<string[]>();
         if (tipo is "solicitudes" or "adopciones")
         {
             rows.Add(["ID", "Estado", "Mascota", "Adoptante", "Fecha"]);
             if (tipo == "adopciones")
             {
-                foreach (var s in await repo.ListAsync<SolicitudDeAdopcion>(x => x.Estado == EstadoSolicitudEnum.Adoptada && x.FechaFinalizacion >= desde && x.FechaFinalizacion <= hasta))
+                foreach (var s in await repo.ListAsync<SolicitudDeAdopcion>(x => x.Estado == EstadoSolicitudEnum.Adoptada && x.FechaFinalizacion >= desde && x.FechaFinalizacion <= hastaLimite))
                     rows.Add([s.Id.ToString(), s.Estado.ToString(), s.MascotaId.ToString(), s.AdoptanteId.ToString(), s.FechaFinalizacion!.Value.ToString("O")]);
             }
             else
             {
-                foreach (var s in await repo.ListAsync<SolicitudDeAdopcion>(x => x.FechaSolicitud >= desde && x.FechaSolicitud <= hasta))
+                foreach (var s in await repo.ListAsync<SolicitudDeAdopcion>(x => x.FechaSolicitud >= desde && x.FechaSolicitud <= hastaLimite))
                     rows.Add([s.Id.ToString(), s.Estado.ToString(), s.MascotaId.ToString(), s.AdoptanteId.ToString(), s.FechaSolicitud.ToString("O")]);
             }
         }
         else if (tipo == "mascotas")
         {
             rows.Add(["ID", "Nombre", "Estado", "Especie", "Fecha"]);
-            foreach (var m in await repo.ListAsync<Mascota>(x => x.FechaRegistro >= desde && x.FechaRegistro <= hasta))
+            foreach (var m in await repo.ListAsync<Mascota>(x => x.FechaRegistro >= desde && x.FechaRegistro <= hastaLimite))
                 rows.Add([m.Id.ToString(), m.Nombre, m.Estado.ToString(), m.Especie.ToString(), m.FechaRegistro.ToString("O")]);
         }
         else

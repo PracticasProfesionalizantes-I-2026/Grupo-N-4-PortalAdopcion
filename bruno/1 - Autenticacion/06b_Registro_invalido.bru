@@ -16,7 +16,7 @@ headers {
 
 body:json {
   {
-    "nombre": "Registro inválido",
+    "nombre": "Reg. inválido",
     "email": "invalidodemo@example.com",
     "dni": "12AB34",
     "password": "ClavePrueba2026!",
@@ -33,7 +33,10 @@ tests {
     expect(res.status).to.equal(400);
   });
   test("el mensaje señala el DNI (solo dígitos)", function() {
-    expect(res.body.title).to.contain("DNI");
+    expect(res.body.errors.dni[0]).to.contain("DNI");
+  });
+  test("el mensaje señala el teléfono (solo números)", function() {
+    expect(res.body.errors.telefono[0]).to.contain("teléfono");
   });
 }
 

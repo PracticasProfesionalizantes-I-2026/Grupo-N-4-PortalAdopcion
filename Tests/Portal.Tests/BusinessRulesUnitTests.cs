@@ -149,6 +149,20 @@ public class BusinessRulesUnitTests
         await Assert.ThrowsAsync<ValidationException>(action);
     }
 
+    [Theory]
+    [InlineData("1234567")]
+    [InlineData("1234567890")]
+    [InlineData("-12345678")]
+    public async Task Register_WhenDniIsOutsideAllowedRange_ThrowsValidation(string dni)
+    {
+        var h = new Harness();
+        var request = new RegistroUsuarioDTO("Ana", "ana@demo.local", dni, "ClaveSegura2026!", "3493000000", "Casa", 30, "Soltero/a", "Empleado");
+
+        var action = () => h.Service.RegisterAsync(request);
+
+        await Assert.ThrowsAsync<ValidationException>(action);
+    }
+
     [Fact]
     public async Task Register_WhenTelefonoHasLetters_ThrowsValidation()
     {
@@ -515,3 +529,4 @@ public class BusinessRulesUnitTests
         await Assert.ThrowsAsync<ConflictException>(action);
     }
 }
+

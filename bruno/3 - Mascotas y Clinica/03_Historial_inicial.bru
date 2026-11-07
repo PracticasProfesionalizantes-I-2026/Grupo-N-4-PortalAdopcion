@@ -10,12 +10,13 @@ post {
   auth: bearer
 }
 
-auth:bearer {
-  token: {{vetToken}}
-}
-
 headers {
   Content-Type: application/json
+  Authorization: Bearer 
+}
+
+auth:bearer {
+  token: {{vetToken}}
 }
 
 body:json {
@@ -36,4 +37,3 @@ tests {
     expect(res.body.mascotaId).to.equal(bru.getVar("mascotaId"));
   });
 }
-
