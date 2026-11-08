@@ -789,8 +789,13 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         await Find<Mascota>(pet);
         if (d.Peso <= BusinessRules.MinPesoMascota || d.Peso > BusinessRules.MaxPesoMascota)
             throw new ValidationException("Peso inválido.");
+<<<<<<< HEAD
         if (await repo.AnyAsync<HistorialClinico>(x => x.MascotaId == pet || x.OrigenMascotaId == pet))
             throw new ConflictException("El historial ya existe o fue transferido al adoptante.");
+=======
+        if (await repo.AnyAsync<HistorialClinico>(x => x.MascotaId == pet))
+            throw new ConflictException("El historial ya existe.");
+>>>>>>> d1f5401f245085446ac93f057cfce41b3d8b2a72
         if (!BusinessRules.EstadosGenerales.Contains(d.EstadoGeneral, StringComparer.OrdinalIgnoreCase))
             throw new ValidationException("Estado general inválido.");
         var h = new HistorialClinico
