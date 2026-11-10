@@ -583,9 +583,17 @@ namespace DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("ProcesosActivos")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Rol")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
 
                     b.Property<long>("Version")
                         .IsConcurrencyToken()

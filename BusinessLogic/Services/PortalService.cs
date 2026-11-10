@@ -1,6 +1,7 @@
 namespace PortalAdopcion.BusinessLogic.Services;
 using System.Net.Mail;
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 using PortalAdopcion.BusinessLogic.Abstractions;
 using PortalAdopcion.BusinessLogic.Mapping;
 using PortalAdopcion.DataAccess.Entities;
@@ -502,6 +503,16 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         m.Estado = EstadoMascotaEnum.Disponible;
         changes.Add(new Cambio(s));
         changes.Add(new Cambio(m));
+        // SECURITY: Decrementar contador de procesos activos del voluntario asignado al cancelar la solicitud.
+        if (s.VoluntarioId.HasValue)
+        {
+            var volunteer = await Find<Usuario>(s.VoluntarioId.Value);
+            if (volunteer.ProcesosActivos > 0)
+            {
+                volunteer.ProcesosActivos--;
+                changes.Add(new Cambio(volunteer));
+            }
+        }
         await Save(a, "CU-13 Cancelación", id, reason, changes.ToArray());
         return s.ToDto();
     }
@@ -517,8 +528,14 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             throw new ValidationException("Voluntario no habilitado.");
         if (d.FechaProgramada.ToUniversalTime() < Now)
             throw new ValidationException("La entrevista no puede programarse en el pasado.");
-        if (await repo.CountAsync<SolicitudDeAdopcion>(x => x.VoluntarioId == d.VoluntarioId && EstadosActivos.Contains(x.Estado)) >= BusinessRules.MaxProcesosActivosPorVoluntario)
+
+        // SECURITY: RN-16 - Control de concurrencia optimista para límite de procesos activos por voluntario.
+        // Se valida ProcesosActivos en memoria y se incrementa bajo control de versión/RowVersion.
+        if (volunteer.ProcesosActivos >= BusinessRules.MaxProcesosActivosPorVoluntario)
             throw new ConflictException("El voluntario ya tiene dos procesos activos asignados.");
+
+        volunteer.ProcesosActivos++;
+
         var e = new Entrevista
         {
             SolicitudId = id,
@@ -530,7 +547,27 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         s.UltimaActividad = Now;
         var m = await Find<Mascota>(s.MascotaId);
         m.Estado = EstadoMascotaEnum.EnEntrevista;
-        await Save(a, "CU-11 Programar", id, "Entrevista programada", new Cambio(e, true), new Cambio(s), new Cambio(m), Notice(id, "Entrevista asignada", user: d.VoluntarioId));
+
+        try
+        {
+            await Save(a, "CU-11 Programar", id, "Entrevista programada",
+                new Cambio(e, true),
+                new Cambio(s),
+                new Cambio(m),
+                new Cambio(volunteer),
+                Notice(id, "Entrevista asignada", user: d.VoluntarioId));
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // SECURITY: RN-16 - Colisión de concurrencia optimista al guardar cambios en voluntario traducida a error RN-16.
+            throw new ConflictException("El voluntario ya tiene dos procesos activos asignados.");
+        }
+        catch (ConflictException ex) when (ex.Message.Contains("cambiaron"))
+        {
+            // SECURITY: RN-16 - Si el repositorio traduce DbUpdateConcurrencyException a ConflictException general.
+            throw new ConflictException("El voluntario ya tiene dos procesos activos asignados.");
+        }
+
         return e.ToDto();
     }
 
@@ -564,6 +601,7 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         e.FechaRealizada = Now;
         s.UltimaActividad = Now;
         var m = await Find<Mascota>(s.MascotaId);
+        var changes = new List<Cambio> { new(e), new(s), new(m) };
         if (d.Resultado == "Favorable")
         {
             s.Estado = EstadoSolicitudEnum.EnPeriodoDePrueba;
@@ -575,9 +613,19 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             s.Estado = EstadoSolicitudEnum.Rechazada;
             s.Motivo = e.Observaciones;
             m.Estado = EstadoMascotaEnum.Disponible;
+            // SECURITY: Si la entrevista no es favorable, se libera el proceso activo asignado al voluntario.
+            if (s.VoluntarioId.HasValue)
+            {
+                var volunteer = await Find<Usuario>(s.VoluntarioId.Value);
+                if (volunteer.ProcesosActivos > 0)
+                {
+                    volunteer.ProcesosActivos--;
+                    changes.Add(new Cambio(volunteer));
+                }
+            }
         }
 
-        await Save(a, "CU-11 Resultado", id, e.Observaciones, new Cambio(e), new Cambio(s), new Cambio(m));
+        await Save(a, "CU-11 Resultado", id, e.Observaciones, changes.ToArray());
         return s.ToDto();
     }
 
@@ -691,6 +739,16 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             new Cambio(history),
             new Cambio(clone, true)
         };
+        // SECURITY: Al completar la adopción, se decremente de forma consistente el contador de procesos activos del voluntario.
+        if (s.VoluntarioId.HasValue)
+        {
+            var volunteer = await Find<Usuario>(s.VoluntarioId.Value);
+            if (volunteer.ProcesosActivos > 0)
+            {
+                volunteer.ProcesosActivos--;
+                changes.Add(new Cambio(volunteer));
+            }
+        }
         changes.AddRange(cloneEvents.Select(e => new Cambio(e, true)));
         changes.Add(Notice(id, "Adopción finalizada. El historial clínico fue transferido a tu perfil.", user: owner.Id));
         await Save(a, "CU-15 Finalizar", id, Text(reason, "Motivo"), changes.ToArray());
@@ -711,9 +769,20 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             s.Motivo = $"Más de {BusinessRules.DiasInactividadAbandono} días sin actividad";
             s.UltimaActividad = Now;
             m.Estado = EstadoMascotaEnum.Disponible;
+            var changes = new List<Cambio> { new(s), new(m) };
+            // SECURITY: Liberar proceso activo del voluntario en solicitudes abandonadas por inactividad.
+            if (s.VoluntarioId.HasValue)
+            {
+                var volunteer = await Find<Usuario>(s.VoluntarioId.Value);
+                if (volunteer.ProcesosActivos > 0)
+                {
+                    volunteer.ProcesosActivos--;
+                    changes.Add(new(volunteer));
+                }
+            }
             try
             {
-                await Save(new(Guid.Empty, "Sistema", null), "CU-14 Abandono", s.Id, s.Motivo, new Cambio(s), new Cambio(m));
+                await Save(new(Guid.Empty, "Sistema", null), "CU-14 Abandono", s.Id, s.Motivo, changes.ToArray());
                 count++;
             }
             catch (ConflictException)

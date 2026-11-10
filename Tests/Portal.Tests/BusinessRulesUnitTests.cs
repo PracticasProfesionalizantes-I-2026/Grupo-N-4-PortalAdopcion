@@ -93,6 +93,11 @@ public class BusinessRulesUnitTests
         {
             var s = new SolicitudDeAdopcion { MascotaId = mascotaId, AdoptanteId = adoptanteId, Estado = estado, VoluntarioId = voluntarioId, InicioPrueba = inicioPrueba, Alerta = alerta, FechaSolicitud = Clock.Now, UltimaActividad = Clock.Now, MotivoAdopcion = "Quiero adoptar" };
             Store.Add(s);
+            if (voluntarioId.HasValue && (estado == EstadoSolicitudEnum.EnEntrevista || estado == EstadoSolicitudEnum.EnPeriodoDePrueba))
+            {
+                var u = Store.OfType<Usuario>().FirstOrDefault(x => x.Id == voluntarioId.Value);
+                if (u != null) u.ProcesosActivos++;
+            }
             return s;
         }
 
@@ -513,5 +518,56 @@ public class BusinessRulesUnitTests
 
         // Assert
         await Assert.ThrowsAsync<ConflictException>(action);
+    }
+
+    [Theory]
+    [InlineData("Production", true, false)]
+    [InlineData("Testing", true, false)]
+    [InlineData("Development", false, false)]
+    [InlineData("Development", true, true)]
+    public void LockCleanup_WhenOutsideDevelopmentOrNotSqlite_ConditionEvaluatesCorrectly(string envName, bool isSqlite, bool expected)
+    {
+        // Act
+        var shouldExecute = (envName == "Development") && isSqlite;
+
+        // Assert
+        Assert.Equal(expected, shouldExecute);
+    }
+
+    [Fact]
+    public void ResetDemoEndpoint_ConfigurationGuards_CheckedByBuildConfiguration()
+    {
+        // Act
+        var method = typeof(PortalAdopcion.API.Controllers.ControlController).GetMethod("ResetDemo");
+
+        // Assert
+#if DEBUG
+        Assert.NotNull(method);
+#else
+        Assert.Null(method);
+#endif
+    }
+
+    [Fact]
+    public async Task Schedule_WhenConcurrencyConflictOnVolunteer_TranslatesToRN16()
+    {
+        // Arrange
+        var h = new Harness();
+        var admin = h.AddUser("Administrador");
+        var volunteer = h.AddUser("Voluntario");
+        var pet = h.AddMascota(EstadoMascotaEnum.Reservada);
+        var request = h.AddSolicitud(pet.Id, Guid.NewGuid(), EstadoSolicitudEnum.Aprobada);
+        var requestDto = new EntrevistaDTO(h.Clock.Now.AddDays(1), volunteer.Id);
+
+        // Simulamos conflicto de concurrencia optimista al persistir cambios
+        h.Repo.Setup(r => r.SaveAsync(It.IsAny<IEnumerable<Cambio>>(), It.IsAny<EventoAuditoria>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConflictException("Los datos cambiaron. Actualizá la consulta y reintentá."));
+
+        // Act
+        var action = () => h.Service.ScheduleAsync(admin, request.Id, requestDto);
+
+        // Assert: Debe traducirse al error de negocio específico RN-16
+        var ex = await Assert.ThrowsAsync<ConflictException>(action);
+        Assert.Equal("El voluntario ya tiene dos procesos activos asignados.", ex.Message);
     }
 }

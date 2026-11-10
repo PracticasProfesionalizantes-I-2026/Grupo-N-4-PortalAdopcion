@@ -26,7 +26,8 @@ public static class DemoSeed
             Email = "voluntario@demo.local",
             Dni = "10000002",
             Rol = "Voluntario",
-            PasswordHash = PasswordSecurity.Hash("DemoPortal2026!")
+            PasswordHash = PasswordSecurity.Hash("DemoPortal2026!"),
+            ProcesosActivos = 1
         };
         var vet = new Usuario
         {

@@ -149,7 +149,9 @@ public class SolicitudesController(IPortalService s) : PortalController
 }
 
 [ApiController, Authorize, Route("api")]
+#pragma warning disable CS9113 // Parámetros utilizados en ResetDemo (activo únicamente en compilaciones DEBUG)
 public class ControlController(IPortalService s, IWebHostEnvironment env, IConfiguration config, IPortalRepository repo, IOutputCacheStore cache) : PortalController
+#pragma warning restore CS9113
 {
     [HttpGet("incidentes")]
     public async Task<IActionResult> Incidents() => Ok(await s.IncidentsAsync(Actor));
@@ -170,6 +172,8 @@ public class ControlController(IPortalService s, IWebHostEnvironment env, IConfi
     // Reinicia el entorno demo (borra todos los datos y vuelve a sembrar los ejemplos).
     // Permite repetir la colección Bruno cuantas veces se quiera sin borrar el archivo .db.
     // Solo disponible en Development + modo demo y desde loopback: en cualquier otro caso, 404.
+#if DEBUG
+    // SECURITY: Endpoint destructivo de reinicio demo confinado exclusivamente a compilaciones DEBUG para prevenir su inclusión y exposición en producción (Release).
     [HttpPost("demo/reiniciar"), AllowAnonymous]
     public async Task<IActionResult> ResetDemo()
     {
@@ -182,6 +186,7 @@ public class ControlController(IPortalService s, IWebHostEnvironment env, IConfi
         await cache.EvictByTagAsync("catalogo", default);
         return Ok(new { reiniciado = true, mensaje = "Datos demo restaurados." });
     }
+#endif
 
     [HttpGet("reportes"), Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Report(string tipo, DateTime desde, DateTime hasta, string formato = "csv")

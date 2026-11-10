@@ -127,7 +127,17 @@ if (app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PortalAdopcionDbContext>();
-    await CleanupStaleMigrationLockAsync(db, app.Logger);
+    // SECURITY: Limpieza de locks huérfanos solo permitida en Development con SQLite para evitar condiciones de carrera o corrupción en entornos productivos/multinstancia.
+    if (app.Environment.IsDevelopment() && db.Database.IsSqlite())
+    {
+        await CleanupStaleMigrationLockAsync(db, app.Logger);
+    }
+    else
+    {
+        app.Logger.LogCritical("Limpiador de locks de migración deshabilitado en este entorno. EnvironmentName: {EnvironmentName}, ProviderName: {ProviderName}",
+            app.Environment.EnvironmentName,
+            db.Database.ProviderName);
+    }
     await db.Database.MigrateAsync();
     // WAL mejora la concurrencia lectura/escritura de SQLite y reduce bloqueos.
     if (db.Database.IsSqlite())

@@ -16,6 +16,14 @@ public class Usuario : Registro
     public string? Matricula { get; set; }
     public Guid? AdoptanteId { get; set; }
     public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
+
+    // SECURITY: Control de concurrencia optimista para RN-16 (máximo de procesos activos por voluntario).
+    public int ProcesosActivos { get; set; }
+
+    // SECURITY: Atributo [Timestamp] para compatibilidad con proveedores que usan RowVersion binario (ej. SQL Server).
+    // Para SQLite, el equivalente funcional activo del proyecto es el campo Version (long) heredado de Registro.
+    [System.ComponentModel.DataAnnotations.Timestamp]
+    public byte[]? RowVersion { get; set; }
 }
 
 public class SancionBlacklist : Registro

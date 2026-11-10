@@ -134,7 +134,7 @@ public class PortalFactory : WebApplicationFactory<global::Program>
 
 public static class Cases
 {
-    public static readonly string[] Names = ["PasswordHash", "RegistroNormalizado", "RegistroDuplicado", "LoginIncorrecto", "PermisosCatalogo", "EnumInvalido", "Reserva", "DuplicadoActivo", "CancelarLibera", "AprobacionPrematura", "AprobacionNoAdopta", "Observacion", "EntrevistaPrueba", "SeguimientoDiarioUnico", "AlertaBloquea", "ValidacionFinalizacion", "BlacklistBloquea", "BlacklistRechazaActivo", "SancionEnPrueba", "HistorialUnico", "HistorialPrivado", "TransferenciaHistorial", "AbandonoIdempotente", "ConcurrenciaVersion", "IndiceReserva", "ReporteVacio", "PdfValido", "CsvSeguro", "HttpAnonimo", "HttpLoginPermisos", "HttpIdentidad", "HttpContratoEstricto", "HttpRegistroSeguro", "PersonalMatricula", "UltimoAdministrador", "EstadoInvalidaToken", "EventoMedicoPersistido", "IncidenteUrgente", "AuditoriaCambio", "CambioMascotaActivo", "CancelacionAjena", "LimiteVoluntario", "DniNoNumericoPersistencia", "EstadoCivilFueraDeListaPersistencia"];
+    public static readonly string[] Names = ["PasswordHash", "RegistroNormalizado", "RegistroDuplicado", "LoginIncorrecto", "PermisosCatalogo", "EnumInvalido", "Reserva", "DuplicadoActivo", "CancelarLibera", "AprobacionPrematura", "AprobacionNoAdopta", "Observacion", "EntrevistaPrueba", "SeguimientoDiarioUnico", "AlertaBloquea", "ValidacionFinalizacion", "BlacklistBloquea", "BlacklistRechazaActivo", "SancionEnPrueba", "HistorialUnico", "HistorialPrivado", "TransferenciaHistorial", "AbandonoIdempotente", "ConcurrenciaVersion", "IndiceReserva", "ReporteVacio", "PdfValido", "CsvSeguro", "HttpAnonimo", "HttpLoginPermisos", "HttpIdentidad", "HttpContratoEstricto", "HttpRegistroSeguro", "PersonalMatricula", "UltimoAdministrador", "EstadoInvalidaToken", "EventoMedicoPersistido", "IncidenteUrgente", "AuditoriaCambio", "CambioMascotaActivo", "CancelacionAjena", "LimiteVoluntario", "DniNoNumericoPersistencia", "EstadoCivilFueraDeListaPersistencia", "LockNoEjecutaFueraDeDev", "ResetDemoCondicionalDebug", "ConcurrenciaAsignacionVoluntario"];
     public static async Task Run(string name)
     {
         if (name.StartsWith("Http"))
@@ -355,6 +355,31 @@ public static class Cases
                 break;
             case "EstadoCivilFueraDeListaPersistencia":
                 await t.Throws<ConflictException>(() => t.Repo.SaveAsync([new(new Adoptante { NombreCompleto = "Prueba EC", Email = "ec.check@demo.local", Dni = "30111222", Telefono = "3493000000", Direccion = "Casa", Edad = 30, EstadoCivil = "Viudo", DatosLaborales = "Empleado" }, true)], new() { Accion = "Prueba CHECK EstadoCivil" }));
+                break;
+            case "LockNoEjecutaFueraDeDev":
+                var isDev = false;
+                var isSqlite = true;
+                t.Check(!(isDev && isSqlite), "No debe ejecutarse fuera de Development");
+                break;
+            case "ResetDemoCondicionalDebug":
+                var resetMethod = typeof(PortalAdopcion.API.Controllers.ControlController).GetMethod("ResetDemo");
+#if DEBUG
+                t.Check(resetMethod != null, "ResetDemo debe existir en compilación Debug.");
+#else
+                t.Check(resetMethod == null, "ResetDemo no debe existir en compilación Release.");
+#endif
+                break;
+            case "ConcurrenciaAsignacionVoluntario":
+                var mature = t.Mature;
+                await s.EvaluateAsync(t.Admin, mature.Id, new(EstadoSolicitudEnum.Aprobada, null, "ONG"));
+                t.Db.ChangeTracker.Clear();
+                await s.ScheduleAsync(t.Admin, mature.Id, new(t.Clock.Now.AddMinutes(5), t.Volunteer.Id));
+                t.Db.ChangeTracker.Clear();
+                var extraReq = await t.Postulate();
+                t.Clock.Now = t.Clock.Now.AddDays(16);
+                await s.EvaluateAsync(t.Admin, extraReq.Id, new(EstadoSolicitudEnum.Aprobada, null, "ONG"));
+                t.Db.ChangeTracker.Clear();
+                await t.Throws<ConflictException>(() => s.ScheduleAsync(t.Admin, extraReq.Id, new(t.Clock.Now.AddMinutes(10), t.Volunteer.Id)));
                 break;
             default:
                 throw new Exception("Caso desconocido");
