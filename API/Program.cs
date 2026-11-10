@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using PortalAdopcion.API;
 using PortalAdopcion.API.Middleware;
 using PortalAdopcion.BusinessLogic.Abstractions;
 using PortalAdopcion.BusinessLogic.Services;
@@ -33,6 +34,10 @@ builder.Services.AddDbContext<PortalAdopcionDbContext>(o => o.UseSqlite(csb.Conn
 builder.Services.AddScoped<IPortalRepository, PortalRepository>();
 builder.Services.AddScoped<IPortalService, PortalService>();
 
+// --- Configuración de Correo (MailKit / SmtpOptions) ---
+builder.Services.Configure<PortalAdopcion.API.Options.SmtpOptions>(builder.Configuration.GetSection(PortalAdopcion.API.Options.SmtpOptions.SectionName));
+builder.Services.AddSingleton<PortalAdopcion.API.Services.ISmtpClientFactory, PortalAdopcion.API.Services.SmtpClientFactory>();
+
 // --- Compresión de respuestas (Brotli + Gzip) ---
 builder.Services.AddResponseCompression(o =>
 {
@@ -47,7 +52,7 @@ builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = Compre
 // --- Caché de salida (server-side) para lecturas públicas y frecuentes ---
 builder.Services.AddOutputCache(o =>
 {
-    o.AddPolicy("Catalogo", b => b.Expire(TimeSpan.FromSeconds(20)).SetVaryByQuery("estado").Tag("catalogo"));
+    o.AddPolicy("Catalogo", b => b.Expire(TimeSpan.FromSeconds(20)).SetVaryByQuery(["estado", "especie", "sexo", "busqueda"]).Tag("catalogo"));
     o.AddPolicy("Publico", b => b.Expire(TimeSpan.FromSeconds(60)));
 });
 

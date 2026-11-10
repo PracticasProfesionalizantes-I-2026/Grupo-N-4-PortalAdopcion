@@ -56,10 +56,12 @@ sobre una mascota disponible, quedando la solicitud registrada en estado
   2. El Sistema (Capa de Presentación) rechaza la petición por falta de autenticación.
   3. El Sistema devuelve un código **401 Unauthorized** solicitando autenticación (CU-07). Una vez autenticado, el flujo continúa desde el Paso 2. Fin del caso de uso.
 
-* **3b. Adoptante incluido en la Blacklist (HTTP 409 Conflict):**
+* **3b. Adoptante incluido en la Blacklist (HTTP 403 Forbidden):**
   1. Si en el Paso 3 se detecta que el adoptante posee una sanción vigente, violando **RN-01**.
-  2. El Sistema (Capa de Negocio) rechaza la creación de la solicitud.
-  3. El Sistema devuelve un código **409 Conflict**, informa el motivo y registra el intento en auditoría (**RN-08**). Fin del caso de uso.
+  2. El Sistema (Capa de Negocio) lanza `AccessException` que `ExceptionHandlingMiddleware` traduce a **403 Forbidden**. El adoptante tiene credenciales válidas pero su acceso está bloqueado por sanción activa; semánticamente 403 es el código REST correcto para acceso denegado.
+  3. El Sistema devuelve un código **403 Forbidden**, informa el motivo y registra el intento en auditoría (**RN-08**). Fin del caso de uso.
+
+  > **ADR — 403 vs 409 para Blacklist:** se usa 403 (no 409) porque el adoptante está autenticado pero su acceso queda bloqueado por una sanción activa administrada en CU-01. El 409 Conflict se reserva para violaciones de invariantes de negocio que dependen del estado concurrente de los datos (RN-04 reserva, mascota no disponible, concurrencia). Esta decisión es consistente con la implementación: `PortalService.PostulateAsync` lanza `AccessException` y el middleware la mapea explícitamente a 403.
 
 * **3c. Mascota inexistente (HTTP 404 Not Found):**
   1. Si en el Paso 3 el `mascotaId` no corresponde a ninguna mascota registrada.
@@ -107,14 +109,15 @@ sobre una mascota disponible, quedando la solicitud registrada en estado
 | `201` | Created | Confirmación de persistencia exitosa de la nueva solicitud en `Pendiente`. |
 | `400` | Bad Request | Fallo en la validación de esquema, datos obligatorios faltantes o perfil incompleto (RN-03). |
 | `401` | Unauthorized | Petición sin token JWT válido (RN-14). |
+| `403` | Forbidden | Adoptante en blacklist intenta postularse (RN-01); acceso denegado por sanción activa. |
 | `404` | Not Found | Mascota referenciada inexistente en la Capa de Persistencia. |
-| `409` | Conflict | Violación de invariantes de negocio o concurrencia (RN-01 blacklist, RN-04 reserva/proceso activo, mascota no disponible). |
+| `409` | Conflict | Violación de invariantes de negocio o concurrencia (RN-04 reserva/proceso activo, mascota no disponible, conflicto de concurrencia). |
 | `500` | Internal Server Error | Error técnico no controlado durante la persistencia. |
 
 ### Nota: Validación vs. Verificación aplicada
 
 - **Validación (Presentación, → 400):** formato del JSON, campos obligatorios del formulario (RN-03) y perfil completo.
-- **Verificación (Negocio, → 401/404/409):** autenticación (401); existencia de la mascota (`MascotaNotFoundException` → 404); RN-01 blacklist, RN-04 reserva única/proceso activo y RN-09 mascota no disponible (`BlacklistException` / `MascotaNoDisponibleException` → 409). La auditoría (RN-08) y el código de confirmación (RN-07) se emiten en la Capa de Negocio.
+- **Verificación (Negocio, → 401/403/404/409):** autenticación (401); **blacklist activa (`AccessException` → 403, RN-01)**; existencia de la mascota (`MascotaNotFoundException` → 404); RN-04 reserva única/proceso activo y RN-09 mascota no disponible (`MascotaNoDisponibleException` → 409). La auditoría (RN-08) y el código de confirmación (RN-07) se emiten en la Capa de Negocio.
 
 ### Matriz de trazabilidad CU-02 → Test
 
@@ -124,7 +127,7 @@ sobre una mascota disponible, quedando la solicitud registrada en estado
 | 1a. JSON inválido | `400 Bad Request` | — (model binding, no pasa por Negocio) | `POST /api/solicitudes_ConJsonInvalido_Returns400` |
 | 2a. Perfil incompleto | `400 Bad Request` | `SolicitudService_ConPerfilIncompleto_LanzaValidationException` | `POST /api/solicitudes_ConPerfilIncompleto_Returns400` |
 | 3a. Sin sesión | `401 Unauthorized` | — (se detecta en la autenticación) | `POST /api/solicitudes_SinToken_Returns401` |
-| 3b. Blacklist | `409 Conflict` | `SolicitudService_ConBlacklist_LanzaSanctionException` | `POST /api/solicitudes_ConBlacklist_Returns409` |
+| 3b. Blacklist | `403 Forbidden` | `SolicitudService_ConBlacklist_LanzaAccessException` | `POST /api/solicitudes_ConBlacklist_Returns403` |
 | 3c. Mascota inexistente | `404 Not Found` | `SolicitudService_ConMascotaInexistente_LanzaMascotaNotFoundException` | `POST /api/solicitudes_ConMascotaInexistente_Returns404` |
 | 3d. Mascota no disponible | `409 Conflict` | `SolicitudService_ConMascotaNoDisponible_LanzaMascotaNoDisponibleException` | `POST /api/solicitudes_ConMascotaNoDisponible_Returns409` |
 | 3e. Proceso activo | `409 Conflict` | `SolicitudService_ConProcesoActivo_LanzaProcesoActivoException` | `POST /api/solicitudes_ConProcesoActivo_Returns409` |

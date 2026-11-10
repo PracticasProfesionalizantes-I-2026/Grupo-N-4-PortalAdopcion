@@ -30,9 +30,8 @@ sanitario y sirviendo como registro oficial de su condición de salud.
 
 ### 2. PRECONDICIONES
 1. El veterinario debe estar autenticado (Token JWT válido) con permisos para gestionar información clínica.
-2. La mascota debe estar registrada y poseer un estado válido dentro del sistema (**RN-09**).
-3. La mascota no debe poseer un historial clínico previamente registrado (invariante de unicidad).
-4. Debe existir disponibilidad del servicio de almacenamiento.
+2. La mascota debe estar registrada en el sistema y no poseer historial clínico previo (CU-03 es el acto de apertura del historial médico). Debe poseer además un estado válido dentro del sistema (**RN-09**).
+3. Debe existir disponibilidad del servicio de almacenamiento.
 
 ### 3. FLUJO PRINCIPAL (Camino Feliz - HTTP 201)
 1. El Actor envía una petición al endpoint `POST /api/mascotas/{id}/historial` con un JSON que contiene la ficha clínica inicial (estado general de salud, peso, edad estimada, vacunas aplicadas, desparasitación, esterilización, enfermedades diagnosticadas, alergias conocidas y antecedentes médicos relevantes).

@@ -262,13 +262,50 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         await Save(a, "Perfil Baja", id, "Baja lógica", changes.ToArray());
     }
 
-    public async Task<List<MascotaResponseDTO>> PetsAsync(EstadoMascotaEnum? estado)
+    // REFACTOR: Filtro dinámico de catálogo (RF 5.1 / CU-09) compuesto en Expression y evaluado por el motor de BD.
+    public async Task<IReadOnlyList<MascotaResponseDTO>> PetsAsync(
+        EstadoMascotaEnum? estado = null,
+        EspecieEnum? especie = null,
+        SexoEnum? sexo = null,
+        string? busqueda = null,
+        CancellationToken ct = default)
     {
         if (estado.HasValue)
             EnumValid(estado.Value);
-        var pets = estado.HasValue
-            ? await repo.ListAsync<Mascota>(x => x.Estado != EstadoMascotaEnum.Inactiva && x.Estado == estado.Value)
-            : await repo.ListAsync<Mascota>(x => x.Estado != EstadoMascotaEnum.Inactiva);
+        if (especie.HasValue)
+            EnumValid(especie.Value);
+        if (sexo.HasValue)
+            EnumValid(sexo.Value);
+
+        System.Linq.Expressions.Expression<Func<Mascota, bool>> predicate = x => x.Estado != EstadoMascotaEnum.Inactiva;
+
+        if (estado.HasValue)
+        {
+            var eVal = estado.Value;
+            predicate = PortalAdopcion.BusinessLogic.Common.PredicateBuilder.And(predicate, x => x.Estado == eVal);
+        }
+
+        if (especie.HasValue)
+        {
+            var espVal = especie.Value;
+            predicate = PortalAdopcion.BusinessLogic.Common.PredicateBuilder.And(predicate, x => x.Especie == espVal);
+        }
+
+        if (sexo.HasValue)
+        {
+            var sVal = sexo.Value;
+            predicate = PortalAdopcion.BusinessLogic.Common.PredicateBuilder.And(predicate, x => x.Sexo == sVal);
+        }
+
+        if (!string.IsNullOrWhiteSpace(busqueda))
+        {
+            var pattern = $"%{busqueda.Trim()}%";
+            predicate = PortalAdopcion.BusinessLogic.Common.PredicateBuilder.And(predicate, x =>
+                EF.Functions.Like(x.Nombre, pattern) ||
+                (x.Raza != null && EF.Functions.Like(x.Raza, pattern)));
+        }
+
+        var pets = await repo.ListAsync(predicate, ct);
         return pets.OrderBy(x => x.Nombre).Select(x => x.ToDto()).ToList();
     }
 
@@ -420,6 +457,8 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
         var p = await Find<Adoptante>(profile.Value);
         var m = await Find<Mascota>(d.MascotaId);
         var user = await repo.FirstAsync<Usuario>(x => x.AdoptanteId == p.Id);
+        // ACA: 403 Forbidden confirmado para usuarios en blacklist (ver CU-01/CU-02).
+        // Semánticamente adecuado en REST para acceso denegado por sanción vigente; ExceptionHandlingMiddleware mapea AccessException a 403.
         if (await Blocked(p.Id))
             throw new AccessException(ErrorMessages.PostulacionBloqueada);
         if (p.Baja || user is null || user.Estado != "Activa")

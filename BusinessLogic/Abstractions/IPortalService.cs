@@ -16,7 +16,8 @@ public interface IPortalService
     Task<AdoptanteResponseDTO> CreateProfileAsync(Actor a, PerfilDTO d);
     Task<AdoptanteResponseDTO> UpdateProfileAsync(Actor a, Guid id, PerfilDTO d);
     Task DeleteProfileAsync(Actor a, Guid id);
-    Task<List<MascotaResponseDTO>> PetsAsync(EstadoMascotaEnum? estado);
+    // REFACTOR: Firma ampliada con filtros dinámicos (RF 5.1 / CU-09) ejecutados en base de datos.
+    Task<IReadOnlyList<MascotaResponseDTO>> PetsAsync(EstadoMascotaEnum? estado = null, EspecieEnum? especie = null, SexoEnum? sexo = null, string? busqueda = null, CancellationToken ct = default);
     Task<MascotaResponseDTO> PetAsync(Guid id);
     Task<MascotaResponseDTO> CreatePetAsync(Actor a, MascotaFichaDTO d);
     Task<MascotaResponseDTO> UpdatePetAsync(Actor a, Guid id, MascotaFichaDTO d);

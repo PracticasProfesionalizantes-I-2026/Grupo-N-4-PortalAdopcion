@@ -60,6 +60,8 @@ impidiendo temporalmente que inicien nuevas postulaciones.
   2. El Sistema frena la ejecución en la **Capa de Negocio** y lanza la excepción de dominio `SanctionException`.
   3. El Sistema devuelve un código **409 Conflict**; el administrador puede optar por modificar la sanción existente o cancelar la operación. Fin del caso de uso.
 
+  > **Nota ADR — código HTTP para Blacklist en postulaciones (CU-02):** cuando un adoptante sancionado intenta crear una solicitud de adopción, el sistema devuelve **403 Forbidden** (no 409 Conflict). La razón es que el adoptante tiene credenciales válidas pero su acceso está denegado por sanción activa; semánticamente 403 es el código REST correcto para "acceso bloqueado". El 409 de este flujo aplica únicamente al *alta de sanción duplicada* dentro de CU-01 mismo (un administrador intenta sancionar a alguien que ya tiene sanción vigente).
+
 * **3c. Usuario eliminado o inactivo permanentemente (HTTP 409 Conflict):**
   1. Si en el Paso 3 el usuario se encuentra dado de baja o con baja definitiva (soft), no es posible sancionarlo (**RN-15**).
   2. El Sistema (Capa de Negocio) rechaza la operación.
@@ -92,13 +94,14 @@ impidiendo temporalmente que inicien nuevas postulaciones.
 | `204` | No Content | Confirmación de eliminación de sanción (sin cuerpo). |
 | `400` | Bad Request | Fallo en la validación de esquema o campos obligatorios. |
 | `404` | Not Found | Usuario a sancionar inexistente en la Capa de Persistencia. |
-| `409` | Conflict | Violación de invariantes (RN-02: sanción vigente; RN-15: usuario dado de baja). |
+| `403` | Forbidden | Acceso denegado al adoptante sancionado que intenta postularse (CU-02, RN-01). Ver nota ADR. |
+| `409` | Conflict | Violación de invariantes *dentro de CU-01* (RN-02: sanción vigente duplicada; RN-15: usuario dado de baja). |
 | `500` | Internal Server Error | Error técnico no controlado durante la persistencia. |
 
 ### Nota: Validación vs. Verificación aplicada
 
 - **Validación (Presentación, → 400):** campos obligatorios y formato del JSON (`[Required]` sobre el DTO + `ModelState.IsValid` y model binding).
-- **Verificación (Negocio, → 404/409):** existencia del usuario (`UsuarioNotFoundException` → 404); sanción vigente única (**RN-02** → `SanctionException` → 409); usuario dado de baja (**RN-15** → 409). La auditoría (**RN-08**) se registra como dependencia transversal.
+- **Verificación (Negocio, → 404/409):** existencia del usuario (`UsuarioNotFoundException` → 404); sanción vigente única (**RN-02** → `SanctionException` → 409 dentro de CU-01); usuario dado de baja (**RN-15** → 409). **Cuando un adoptante sancionado intenta postularse (CU-02), la excepción `AccessException` se traduce a 403 Forbidden por `ExceptionHandlingMiddleware` — semánticamente correcto para acceso bloqueado por sanción activa.** La auditoría (**RN-08**) se registra como dependencia transversal.
 
 ### Matriz de trazabilidad CU-01 → Test
 
