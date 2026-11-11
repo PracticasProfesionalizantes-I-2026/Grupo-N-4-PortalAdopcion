@@ -14,6 +14,7 @@ using PortalAdopcion.API.Options;
 using PortalAdopcion.API.Services;
 using PortalAdopcion.DataAccess.Entities;
 using PortalAdopcion.DataAccess.Repositories;
+using PortalAdopcion.Shared.Enums;
 using PortalAdopcion.Shared.Exceptions;
 using Xunit;
 
@@ -153,12 +154,12 @@ public class CorreoJobTests
         public async Task AddPending(string? destino)
         {
             await Scenario.Repo.SaveAsync(
-                new[] { new Cambio(new Notificacion { EntidadId = Guid.NewGuid(), Mensaje = "Confirmación: ABC", Fecha = DateTime.UtcNow, Canal = CorreoJob.CanalPendiente, Destino = destino }, true) },
+                new[] { new Cambio(new Notificacion { EntidadId = Guid.NewGuid(), Mensaje = "Confirmación: ABC", Fecha = DateTime.UtcNow, Canal = CanalNotificacionEnum.CorreoBccPendiente, Destino = destino }, true) },
                 new EventoAuditoria { Fecha = DateTime.UtcNow, Accion = "Test" });
             Scenario.Db.ChangeTracker.Clear();
         }
 
-        public async Task<string> CanalDe(string? destino)
+        public async Task<CanalNotificacionEnum> CanalDe(string? destino)
         {
             Scenario.Db.ChangeTracker.Clear();
             return (await Scenario.Repo.ListAsync<Notificacion>()).Single(n => n.Destino == destino).Canal;
@@ -179,7 +180,7 @@ public class CorreoJobTests
         Assert.Equal(1, sent);
         Assert.Equal(1, rig.Sends);
         Assert.Equal(1, rig.Connects);
-        Assert.Equal(CorreoJob.CanalEnviado, await rig.CanalDe("ok@demo.local"));
+        Assert.Equal(CanalNotificacionEnum.CorreoBccEnviado, await rig.CanalDe("ok@demo.local"));
         Assert.Contains(await rig.Scenario.Repo.ListAsync<EventoAuditoria>(), a => a.Accion == "Correo BCC enviado");
         Assert.False(rig.Connected); // la conexión se cierra al terminar el lote
     }
@@ -196,7 +197,7 @@ public class CorreoJobTests
         Assert.Equal(1, sent);
         Assert.Equal(2, rig.Sends);
         Assert.Equal(2, rig.Connects); // reconexión tras el IOException
-        Assert.Equal(CorreoJob.CanalEnviado, await rig.CanalDe("reintento@demo.local"));
+        Assert.Equal(CanalNotificacionEnum.CorreoBccEnviado, await rig.CanalDe("reintento@demo.local"));
     }
 
     [Fact]
@@ -213,8 +214,8 @@ public class CorreoJobTests
 
         Assert.Equal(1, sent);
         Assert.Equal(2, rig.Sends); // 5xx no se reintenta
-        Assert.Equal(CorreoJob.CanalFallido, await rig.CanalDe("malo@demo.local"));
-        Assert.Equal(CorreoJob.CanalEnviado, await rig.CanalDe("bueno@demo.local"));
+        Assert.Equal(CanalNotificacionEnum.CorreoBccFallido, await rig.CanalDe("malo@demo.local"));
+        Assert.Equal(CanalNotificacionEnum.CorreoBccEnviado, await rig.CanalDe("bueno@demo.local"));
     }
 
     [Fact]
@@ -228,8 +229,8 @@ public class CorreoJobTests
         var sent = await rig.Job.ProcessPendingAsync(CancellationToken.None);
 
         Assert.Equal(1, sent);
-        Assert.Equal(CorreoJob.CanalPendiente, await rig.CanalDe("caido@demo.local")); // se reintentará en el próximo ciclo
-        Assert.Equal(CorreoJob.CanalEnviado, await rig.CanalDe("bueno@demo.local"));
+        Assert.Equal(CanalNotificacionEnum.CorreoBccPendiente, await rig.CanalDe("caido@demo.local")); // se reintentará en el próximo ciclo
+        Assert.Equal(CanalNotificacionEnum.CorreoBccEnviado, await rig.CanalDe("bueno@demo.local"));
     }
 
     [Fact]
@@ -243,7 +244,7 @@ public class CorreoJobTests
 
         Assert.Equal(0, sent);
         Assert.Equal(0, rig.Sends);
-        Assert.Equal(CorreoJob.CanalFallido, await rig.CanalDe("esto no es un correo"));
+        Assert.Equal(CanalNotificacionEnum.CorreoBccFallido, await rig.CanalDe("esto no es un correo"));
     }
 
     [Fact]

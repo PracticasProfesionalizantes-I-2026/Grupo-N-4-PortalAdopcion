@@ -11,6 +11,7 @@ using PortalAdopcion.API.Options;
 using PortalAdopcion.API.Services;
 using PortalAdopcion.DataAccess.Entities;
 using PortalAdopcion.DataAccess.Repositories;
+using PortalAdopcion.Shared.Enums;
 
 // REFACTOR: Migración de SmtpClient obsoleto a MailKit/MimeKit con IOptions<SmtpOptions>. Un único cliente SMTP por lote
 // (conexión reutilizada, creado y liberado dentro del lote: no se comparte entre hilos), reconexión automática y
@@ -21,9 +22,6 @@ public class CorreoJob(
     ISmtpClientFactory clientFactory,
     ILogger<CorreoJob> logger) : BackgroundService
 {
-    public const string CanalPendiente = "CorreoBccPendiente";
-    public const string CanalEnviado = "CorreoBccEnviado";
-    public const string CanalFallido = "CorreoBccFallido";
     private const int BatchSize = 20;
 
     private readonly SmtpOptions _options = smtpOptions.Value;
@@ -70,7 +68,7 @@ public class CorreoJob(
         using var scope = scopes.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IPortalRepository>();
         // La selección se resuelve en SQL (WHERE + ORDER BY + LIMIT); antes se leía toda la tabla de notificaciones y se filtraba en memoria.
-        var page = await repo.PageAsync<Notificacion>(x => x.Canal == CanalPendiente, 1, BatchSize, ct);
+        var page = await repo.PageAsync<Notificacion>(x => x.Canal == CanalNotificacionEnum.CorreoBccPendiente, 1, BatchSize, ct);
         if (page.Items.Count == 0)
             return 0;
         return await SendBatchAsync(repo, page.Items, ct);
@@ -93,7 +91,7 @@ public class CorreoJob(
                 if (outcome == Outcome.Pending)
                     continue;
 
-                entry.Canal = outcome == Outcome.Sent ? CanalEnviado : CanalFallido;
+                entry.Canal = outcome == Outcome.Sent ? CanalNotificacionEnum.CorreoBccEnviado : CanalNotificacionEnum.CorreoBccFallido;
                 try
                 {
                     await repo.SaveAsync(new[] { new Cambio(entry) }, new EventoAuditoria

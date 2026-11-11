@@ -75,8 +75,8 @@ public class MascotaService(IPortalRepository repository, TimeProvider timeProvi
         EnumValid(d.Sexo);
         if (d.Edad < BusinessRules.MinEdadMascota || d.Edad > BusinessRules.MaxEdadMascota)
             throw new ValidationException($"Edad: {BusinessRules.MinEdadMascota} a {BusinessRules.MaxEdadMascota} años.");
-        if (d.FotoUrl != null && d.FotoUrl != "" && (!Uri.TryCreate(d.FotoUrl, UriKind.Absolute, out var url) || url.Scheme != "https"))
-            throw new ValidationException("Foto: URL HTTPS válida.");
+        if (d.FotoUrl != null && d.FotoUrl != "" && (!Uri.TryCreate(d.FotoUrl.Trim(), UriKind.Absolute, out var url) || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps)))
+            throw new ValidationException("Foto: URL HTTP/HTTPS válida.");
         m.Especie = d.Especie;
         m.Sexo = d.Sexo;
         m.Edad = d.Edad;

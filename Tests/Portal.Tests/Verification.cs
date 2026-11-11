@@ -172,7 +172,7 @@ public static class Cases
             case "Reserva":
                 var post = await t.Postulate();
                 t.Check(post.Estado == EstadoSolicitudEnum.Pendiente && (await t.Repo.FindAsync<Mascota>(t.Free.Id))!.Estado == EstadoMascotaEnum.Reservada, "No reservó");
-                t.Check((await t.Repo.ListAsync<Notificacion>()).Any(n => n.Canal == "CorreoBccPendiente" && n.EntidadId == post.Id), "Sin confirmación en bandeja");
+                t.Check((await t.Repo.ListAsync<Notificacion>()).Any(n => n.Canal == CanalNotificacionEnum.CorreoBccPendiente && n.EntidadId == post.Id), "Sin confirmación en bandeja");
                 break;
             case "DuplicadoActivo":
                 await t.Postulate();
@@ -305,10 +305,10 @@ public static class Cases
                 await t.Throws<ConflictException>(() => s.CreateStaffAsync(t.Admin, new("Otro", "vet3@demo.local", "90000002", "ClavePrueba2026!", "Veterinario", "DEMO-002")));
                 break;
             case "UltimoAdministrador":
-                await t.Throws<ConflictException>(() => s.ChangeUserAsync(t.Admin, t.Admin.Id, new("Voluntario", "Activa", null)));
+                await t.Throws<ConflictException>(() => s.ChangeUserAsync(t.Admin, t.Admin.Id, new("Voluntario", EstadoUsuarioEnum.Activa, null)));
                 break;
             case "EstadoInvalidaToken":
-                await s.ChangeUserAsync(t.Admin, t.Volunteer.Id, new("Voluntario", "Suspendida", null));
+                await s.ChangeUserAsync(t.Admin, t.Volunteer.Id, new("Voluntario", EstadoUsuarioEnum.Suspendida, null));
                 t.Db.ChangeTracker.Clear();
                 t.Check((await t.Repo.FindAsync<Usuario>(t.Volunteer.Id))!.Version == 1, "No cambia versión");
                 await t.Throws<AuthenticationException>(() => s.LoginAsync(new("voluntario@demo.local", "DemoPortal2026!")));
@@ -319,9 +319,9 @@ public static class Cases
                 t.Check((await t.Repo.ListAsync<EventoMedico>()).Any(e => e.Tipo == "Vacunación" && e.VeterinarioId == t.Vet.Id), "Evento no persistido");
                 break;
             case "IncidenteUrgente":
-                await s.IncidentAsync(t.Volunteer, new(t.Trial.Id, "Urgente", "Consulta médica"));
+                await s.IncidentAsync(t.Volunteer, new(t.Trial.Id, GravedadIncidenteEnum.Urgente, "Consulta médica"));
                 t.Db.ChangeTracker.Clear();
-                t.Check((await t.Repo.ListAsync<Incidente>()).Single().Gravedad == "Urgente" && (await t.Repo.ListAsync<Notificacion>()).Any(n => n.Rol == "Administrador" && n.Mensaje.Contains("Urgente")), "Sin prioridad/notificación");
+                t.Check((await t.Repo.ListAsync<Incidente>()).Single().Gravedad == GravedadIncidenteEnum.Urgente && (await t.Repo.ListAsync<Notificacion>()).Any(n => n.Rol == "Administrador" && n.Mensaje.Contains("Urgente")), "Sin prioridad/notificación");
                 break;
             case "AuditoriaCambio":
                 await s.CreatePetAsync(t.Admin, new("Prueba auditada", EspecieEnum.Perro, null, 2, SexoEnum.Macho, null, null));

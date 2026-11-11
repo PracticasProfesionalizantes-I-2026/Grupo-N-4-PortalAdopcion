@@ -55,7 +55,7 @@ public class AdopcionWorkflowService(IPortalRepository repository, TimeProvider 
         // Semánticamente adecuado en REST para acceso denegado por sanción vigente; ExceptionHandlingMiddleware mapea AccessException a 403.
         if (await Blocked(p.Id))
             throw new AccessException(ErrorMessages.PostulacionBloqueada);
-        if (p.Baja || user is null || user.Estado != "Activa")
+        if (p.Baja || user is null || user.Estado != EstadoUsuarioEnum.Activa)
             throw new ConflictException(ErrorMessages.PerfilNoHabilitado);
         if (p.Edad < BusinessRules.MinEdadAdoptante || string.IsNullOrWhiteSpace(p.DatosLaborales) || string.IsNullOrWhiteSpace(p.EstadoCivil))
             throw new ValidationException("Completá tu perfil.");
@@ -73,7 +73,7 @@ public class AdopcionWorkflowService(IPortalRepository repository, TimeProvider 
             CodigoConfirmacion = Convert.ToHexString(RandomNumberGenerator.GetBytes(8))
         };
         m.Estado = EstadoMascotaEnum.Reservada;
-        await Save(a, "CU-02/CU-05 Postulación", s.Id, "Proceso creado", new Cambio(s, true), new Cambio(m), Notice(s.Id, "Nueva postulación", "Administrador"), Notice(s.Id, "Confirmación: " + s.CodigoConfirmacion, user: user.Id), Notice(s.Id, "Confirmación: " + s.CodigoConfirmacion, user: user.Id, channel: "CorreoBccPendiente", destination: p.Email));
+        await Save(a, "CU-02/CU-05 Postulación", s.Id, "Proceso creado", new Cambio(s, true), new Cambio(m), Notice(s.Id, "Nueva postulación", "Administrador"), Notice(s.Id, "Confirmación: " + s.CodigoConfirmacion, user: user.Id), Notice(s.Id, "Confirmación: " + s.CodigoConfirmacion, user: user.Id, channel: CanalNotificacionEnum.CorreoBccPendiente, destination: p.Email));
         return s.ToDto();
     }
 
@@ -157,7 +157,7 @@ public class AdopcionWorkflowService(IPortalRepository repository, TimeProvider 
         if (s.Estado != EstadoSolicitudEnum.Aprobada)
             throw new ConflictException("La solicitud debe estar aprobada.");
         var volunteer = await Find<Usuario>(d.VoluntarioId);
-        if (volunteer.Rol != "Voluntario" || volunteer.Estado != "Activa")
+        if (volunteer.Rol != "Voluntario" || volunteer.Estado != EstadoUsuarioEnum.Activa)
             throw new ValidationException("Voluntario no habilitado.");
         if (d.FechaProgramada.ToUniversalTime() < Now)
             throw new ValidationException("La entrevista no puede programarse en el pasado.");

@@ -68,7 +68,7 @@ public class BusinessRulesUnitTests
             Repo.Setup(r => r.FindAsync<T>(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((Guid id, CancellationToken _) => Store.OfType<T>().FirstOrDefault(x => x.Id == id));
         }
 
-        public Actor AddUser(string rol, Guid? adoptanteId = null, string estado = "Activa")
+        public Actor AddUser(string rol, Guid? adoptanteId = null, EstadoUsuarioEnum estado = EstadoUsuarioEnum.Activa)
         {
             var u = new Usuario { Nombre = rol, Email = $"{Guid.NewGuid():N}@demo.local", Dni = Guid.NewGuid().ToString("N")[..8], Rol = rol, Estado = estado, AdoptanteId = adoptanteId };
             Store.Add(u);
@@ -253,7 +253,7 @@ public class BusinessRulesUnitTests
         Assert.Equal(EstadoSolicitudEnum.Pendiente, result.Estado);
         Assert.False(string.IsNullOrWhiteSpace(result.CodigoConfirmacion));
         Assert.Equal(EstadoMascotaEnum.Reservada, h.Store.OfType<Mascota>().Single(x => x.Id == pet.Id).Estado);
-        Assert.Contains(h.Store.OfType<Notificacion>(), n => n.Canal == "CorreoBccPendiente" && n.EntidadId == result.Id);
+        Assert.Contains(h.Store.OfType<Notificacion>(), n => n.Canal == CanalNotificacionEnum.CorreoBccPendiente && n.EntidadId == result.Id);
     }
 
     // ---------- Evaluación ----------
@@ -457,7 +457,7 @@ public class BusinessRulesUnitTests
         // Arrange
         var h = new Harness();
         var admin = h.AddUser("Administrador");
-        h.Store.Add(new Usuario { Nombre = "Vet", Email = "vet@demo.local", Dni = "11111111", Rol = "Veterinario", Estado = "Activa", Matricula = "MAT-1" });
+        h.Store.Add(new Usuario { Nombre = "Vet", Email = "vet@demo.local", Dni = "11111111", Rol = "Veterinario", Estado = EstadoUsuarioEnum.Activa, Matricula = "MAT-1" });
         var request = new PersonalDTO("Otro Vet", "otro@demo.local", "22222222", "ClavePrueba2026!", "Veterinario", "MAT-1");
 
         // Act
@@ -473,7 +473,7 @@ public class BusinessRulesUnitTests
         // Arrange
         var h = new Harness();
         var admin = h.AddUser("Administrador");
-        var request = new UsuarioCambioDTO("Voluntario", "Activa", null);
+        var request = new UsuarioCambioDTO("Voluntario", EstadoUsuarioEnum.Activa, null);
 
         // Act
         var action = () => h.Service.ChangeUserAsync(admin, admin.Id, request);

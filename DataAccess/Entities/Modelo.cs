@@ -1,4 +1,5 @@
 namespace PortalAdopcion.DataAccess.Entities;
+using PortalAdopcion.Shared.Enums;
 public abstract class Registro
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -12,7 +13,7 @@ public class Usuario : Registro
     public string Dni { get; set; } = "";
     public string PasswordHash { get; set; } = "";
     public string Rol { get; set; } = "Adoptante";
-    public string Estado { get; set; } = "Activa";
+    public EstadoUsuarioEnum Estado { get; set; } = EstadoUsuarioEnum.Activa;
     public string? Matricula { get; set; }
     public Guid? AdoptanteId { get; set; }
     public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
@@ -89,7 +90,7 @@ public class Incidente : Registro
     public Guid SolicitudId { get; set; }
     public Guid VoluntarioId { get; set; }
     public DateTime Fecha { get; set; }
-    public string Gravedad { get; set; } = "Normal";
+    public GravedadIncidenteEnum Gravedad { get; set; } = GravedadIncidenteEnum.Normal;
     public string Detalle { get; set; } = "";
 }
 
@@ -109,6 +110,6 @@ public class Notificacion : Registro
     public string Mensaje { get; set; } = "";
     public DateTime Fecha { get; set; }
     public Guid EntidadId { get; set; }
-    public string Canal { get; set; } = "Interna";
+    public CanalNotificacionEnum Canal { get; set; } = CanalNotificacionEnum.Interna;
     public string? Destino { get; set; }
 }

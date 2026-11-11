@@ -86,7 +86,7 @@ public class ControlOperativoService(IPortalRepository repository, TimeProvider 
         Assigned(a, s);
         if (s.Estado != EstadoSolicitudEnum.EnPeriodoDePrueba)
             throw new ConflictException("El incidente requiere un proceso en prueba.");
-        if (d.Gravedad is not ("Normal" or "Urgente"))
+        if (!Enum.IsDefined(d.Gravedad))
             throw new ValidationException("Gravedad inválida.");
         var i = new Incidente
         {
@@ -107,7 +107,7 @@ public class ControlOperativoService(IPortalRepository repository, TimeProvider 
         var incidents = a.Rol == "Administrador"
             ? await repo.ListAsync<Incidente>()
             : await repo.ListAsync<Incidente>(x => x.VoluntarioId == a.Id);
-        return incidents.OrderByDescending(x => x.Gravedad == "Urgente").ThenByDescending(x => x.Fecha).Select(x => x.ToDto()).ToList();
+        return incidents.OrderByDescending(x => x.Gravedad == GravedadIncidenteEnum.Urgente).ThenByDescending(x => x.Fecha).Select(x => x.ToDto()).ToList();
     }
 
     public async Task<List<AuditoriaResponseDTO>> AuditAsync(Actor a, DateTime? desde, DateTime? hasta, string? accion, Guid? usuario)
@@ -124,7 +124,7 @@ public class ControlOperativoService(IPortalRepository repository, TimeProvider 
             .OrderByDescending(x => x.Fecha).Select(x => x.ToDto()).ToList();
     }
 
-    public async Task<List<NotificacionResponseDTO>> NotificationsAsync(Actor a) => (await repo.ListAsync<Notificacion>(x => x.Canal == "Interna" && (x.UsuarioId == a.Id || x.Rol == a.Rol))).OrderByDescending(x => x.Fecha).Select(x => x.ToDto()).ToList();
+    public async Task<List<NotificacionResponseDTO>> NotificationsAsync(Actor a) => (await repo.ListAsync<Notificacion>(x => x.Canal == CanalNotificacionEnum.Interna && (x.UsuarioId == a.Id || x.Rol == a.Rol))).OrderByDescending(x => x.Fecha).Select(x => x.ToDto()).ToList();
 
     public async Task<List<string[]>> ReportAsync(Actor a, string tipo, DateTime desde, DateTime hasta)
     {

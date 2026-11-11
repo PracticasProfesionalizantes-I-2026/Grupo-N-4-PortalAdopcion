@@ -97,7 +97,7 @@ public abstract class ServiceBase
 
     protected Task Save(Actor a, string action, Guid id, string reason, params Cambio[] changes) => repo.SaveAsync(changes, new EventoAuditoria { UsuarioId = a.Id, Fecha = Now, Accion = action, EntidadId = id, Motivo = reason });
 
-    protected Cambio Notice(Guid id, string msg, string? role = null, Guid? user = null, string channel = "Interna", string? destination = null) => new(new Notificacion { EntidadId = id, Mensaje = msg, Rol = role, UsuarioId = user, Fecha = Now, Canal = channel, Destino = destination }, true);
+    protected Cambio Notice(Guid id, string msg, string? role = null, Guid? user = null, CanalNotificacionEnum channel = CanalNotificacionEnum.Interna, string? destination = null) => new(new Notificacion { EntidadId = id, Mensaje = msg, Rol = role, UsuarioId = user, Fecha = Now, Canal = channel, Destino = destination }, true);
 
     protected Task<bool> Blocked(Guid profile) => repo.AnyAsync<SancionBlacklist>(x => x.AdoptanteId == profile && !x.Revocada && x.Desde <= Now && x.Hasta > Now);
 

@@ -64,7 +64,7 @@ public class UsuarioAuthService(IPortalRepository repository, TimeProvider timeP
             throw new AuthenticationException(ErrorMessages.CredencialesInvalidas);
         var email = Email(d.Email);
         var u = await repo.FirstAsync<Usuario>(x => x.Email == email);
-        if (u is null || !PasswordSecurity.Verify(d.Password, u.PasswordHash) || (u.Estado == "Baja" || (u.Estado == "Suspendida" && u.Rol != "Adoptante")))
+        if (u is null || !PasswordSecurity.Verify(d.Password, u.PasswordHash) || (u.Estado == EstadoUsuarioEnum.Baja || (u.Estado == EstadoUsuarioEnum.Suspendida && u.Rol != "Adoptante")))
             throw new AuthenticationException(ErrorMessages.CuentaNoHabilitada);
         await Save(new(u.Id, u.Rol, u.AdoptanteId), "CU-07 Login", u.Id, "Inicio de sesión");
         return u;
@@ -106,17 +106,12 @@ public class UsuarioAuthService(IPortalRepository repository, TimeProvider timeP
     public async Task<UsuarioResponseDTO> ChangeUserAsync(Actor a, Guid id, UsuarioCambioDTO d)
     {
         Require(a, "Administrador");
-        if (!Roles.Contains(d.Rol) || !new[]
-        {
-            "Activa",
-            "Suspendida",
-            "Baja"
-        }.Contains(d.Estado))
+        if (!Roles.Contains(d.Rol) || !Enum.IsDefined(d.Estado))
             throw new ValidationException("Rol o estado inválido.");
         var u = await Find<Usuario>(id);
         if ((u.Rol == "Adoptante") != (d.Rol == "Adoptante"))
             throw new ConflictException("Las cuentas de adoptante y de personal se mantienen separadas.");
-        if (u.Rol == "Administrador" && (d.Rol != "Administrador" || d.Estado != "Activa") && await repo.CountAsync<Usuario>(x => x.Rol == "Administrador" && x.Estado == "Activa") <= 1)
+        if (u.Rol == "Administrador" && (d.Rol != "Administrador" || d.Estado != EstadoUsuarioEnum.Activa) && await repo.CountAsync<Usuario>(x => x.Rol == "Administrador" && x.Estado == EstadoUsuarioEnum.Activa) <= 1)
             throw new ConflictException(ErrorMessages.DebeConservarseAdministrador);
         u.Rol = d.Rol;
         u.Estado = d.Estado;
@@ -189,7 +184,7 @@ public class UsuarioAuthService(IPortalRepository repository, TimeProvider timeP
         var u = await repo.FirstAsync<Usuario>(x => x.AdoptanteId == id);
         if (u != null)
         {
-            u.Estado = "Baja";
+            u.Estado = EstadoUsuarioEnum.Baja;
             changes.Add(new Cambio(u));
         }
 

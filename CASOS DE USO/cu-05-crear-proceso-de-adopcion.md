@@ -3,6 +3,10 @@
 > Especificación elaborada siguiendo la guía
 > `GUIA-Especificacion-Casos-de-Uso.md` (sección 3).
 > Reglas de negocio referenciadas con la numeración **unificada RN-01..RN-17**.
+> **Nota de arquitectura:** implementado atómicamente dentro del endpoint
+> `POST /api/solicitudes` (CU-02) bajo el principio de entidad única
+> `SolicitudDeAdopcion`; no existe un endpoint propio para CU-05.
+>
 > **Nota de diseño:** este caso de uso es la **subfunción automática** del Paso 7
 > de **CU-02** (postulación confirmada). Se mantiene como archivo independiente
 > por fidelidad al documento original. `Solicitud` y `Proceso` se modelan como una

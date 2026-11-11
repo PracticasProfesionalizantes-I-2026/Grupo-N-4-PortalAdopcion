@@ -31,7 +31,11 @@ public class MascotasController(IMascotaService s, IClinicaVeterinariaService cl
     public async Task<IActionResult> Update(Guid id, MascotaFichaDTO d) => Ok(await s.UpdatePetAsync(Actor, id, d));
     [HttpPatch("{id:guid}/estado"), Authorize(Roles = "Administrador,Voluntario")]
     public async Task<IActionResult> State(Guid id, CambioMascotaDTO d) => Ok(await s.ChangePetAsync(Actor, id, d));
+    // DOC: DELETE es un alias semántico de la baja lógica: equivale a PATCH /api/mascotas/{id}/estado con estado Inactiva.
+    // No borra el registro; la mascota queda Inactiva con el motivo indicado.
     [HttpDelete("{id:guid}"), Authorize(Roles = "Administrador,Voluntario")]
+    [EndpointSummary("Baja lógica de una mascota (alias de PATCH /api/mascotas/{id}/estado)")]
+    [EndpointDescription("Alias semántico: marca la mascota como Inactiva con el motivo indicado. Equivale a PATCH /api/mascotas/{id}/estado con estado Inactiva. No elimina el registro.")]
     public async Task<IActionResult> Delete(Guid id, [FromQuery] string motivo)
     {
         await s.ChangePetAsync(Actor, id, new(EstadoMascotaEnum.Inactiva, motivo));

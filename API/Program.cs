@@ -13,6 +13,7 @@ using PortalAdopcion.BusinessLogic.Services;
 using PortalAdopcion.DataAccess;
 using PortalAdopcion.DataAccess.Entities;
 using PortalAdopcion.DataAccess.Repositories;
+using PortalAdopcion.Shared.Enums;
 using PortalAdopcion.Shared.Exceptions;
 using Scalar.AspNetCore;
 
@@ -68,6 +69,9 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
+// HARDENING: se detecta el uso de la clave JWT de demostración para avisar en consola al arrancar.
+var usingDemoJwtKey = !builder.Environment.IsEnvironment("Testing")
+    && (builder.Configuration["Jwt:Key"] is null || builder.Configuration["Jwt:Key"] == "SoloParaDemoLocal-PortalAdopcion2026-CambiarClave");
 var jwtKey = builder.Configuration["Jwt:Key"] 
     ?? (builder.Environment.IsEnvironment("Testing") 
         ? "Testing-PortalAdopcion-Secret-AtLeast32Bytes" 
@@ -95,7 +99,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
             var id = ctx.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
             var repo = ctx.HttpContext.RequestServices.GetRequiredService<IPortalRepository>();
             var u = Guid.TryParse(id, out var uid) ? await repo.FindAsync<Usuario>(uid) : null;
-            if (u is null || u.Estado == "Baja" || (u.Estado == "Suspendida" && u.Rol != "Adoptante") || u.Version.ToString() != ctx.Principal?.FindFirstValue("version"))
+            if (u is null || u.Estado == EstadoUsuarioEnum.Baja || (u.Estado == EstadoUsuarioEnum.Suspendida && u.Rol != "Adoptante") || u.Version.ToString() != ctx.Principal?.FindFirstValue("version"))
                 ctx.Fail("Cuenta o sesión no habilitada.");
         }
     };
@@ -109,6 +113,8 @@ if (!builder.Environment.IsEnvironment("Testing"))
 }
 
 var app = builder.Build();
+if (usingDemoJwtKey)
+    app.Logger.LogWarning("SECURITY: se está usando la clave JWT de demostración por defecto. Configurá Jwt__Key con un secreto propio antes de cualquier despliegue.");
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseResponseCompression();
 app.UseDefaultFiles(new DefaultFilesOptions());

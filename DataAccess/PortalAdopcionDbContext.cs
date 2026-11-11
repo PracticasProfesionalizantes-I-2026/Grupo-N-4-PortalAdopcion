@@ -1,6 +1,7 @@
 namespace PortalAdopcion.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using PortalAdopcion.DataAccess.Entities;
+using PortalAdopcion.Shared.Enums;
 
 public class PortalAdopcionDbContext(DbContextOptions<PortalAdopcionDbContext> options) : DbContext(options)
 {
@@ -38,6 +39,9 @@ public class PortalAdopcionDbContext(DbContextOptions<PortalAdopcionDbContext> o
         b.Entity<Mascota>().Property(x => x.Especie).HasConversion<string>();
         b.Entity<Mascota>().Property(x => x.Sexo).HasConversion<string>();
         b.Entity<SolicitudDeAdopcion>().Property(x => x.Estado).HasConversion<string>();
+        b.Entity<Usuario>().Property(x => x.Estado).HasConversion<string>();
+        b.Entity<Incidente>().Property(x => x.Gravedad).HasConversion<string>();
+        b.Entity<Notificacion>().Property(x => x.Canal).HasConversion<string>();
         b.Entity<Adoptante>().HasIndex(x => x.Email).IsUnique();
         b.Entity<Adoptante>().HasIndex(x => x.Dni).IsUnique();
         b.Entity<Usuario>().HasIndex(x => x.Email).IsUnique();
