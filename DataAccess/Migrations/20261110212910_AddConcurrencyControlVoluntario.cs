@@ -23,6 +23,11 @@ namespace DataAccess.Migrations
                 type: "BLOB",
                 rowVersion: true,
                 nullable: true);
+
+            // Backfill RN-16: sin esto, los voluntarios con procesos ya asignados antes de esta migración
+            // arrancarían con ProcesosActivos = 0 y el límite de 2 no se respetaría hasta que esos procesos terminen.
+            migrationBuilder.Sql(
+                @"UPDATE ""Usuario"" SET ""ProcesosActivos"" = (SELECT COUNT(*) FROM ""Solicitudes"" s WHERE s.""VoluntarioId"" = ""Usuario"".""Id"" AND s.""Estado"" IN ('EnEntrevista', 'EnPeriodoDePrueba')) WHERE ""Rol"" = 'Voluntario';");
         }
 
         /// <inheritdoc />

@@ -133,13 +133,14 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PortalAdopcionDbContext>();
     // SECURITY: Limpieza de locks huérfanos solo permitida en Development con SQLite para evitar condiciones de carrera o corrupción en entornos productivos/multinstancia.
-    if (app.Environment.IsDevelopment() && db.Database.IsSqlite())
+    if (StartupGuards.CanCleanMigrationLock(app.Environment.IsDevelopment(), db.Database.IsSqlite()))
     {
         await CleanupStaleMigrationLockAsync(db, app.Logger);
     }
     else
     {
-        app.Logger.LogCritical("Limpiador de locks de migración deshabilitado en este entorno. EnvironmentName: {EnvironmentName}, ProviderName: {ProviderName}",
+        // Es el comportamiento esperado fuera de Development (no es una condición crítica): nivel Information.
+        app.Logger.LogInformation("Limpiador de locks de migración deshabilitado en este entorno. EnvironmentName: {EnvironmentName}, ProviderName: {ProviderName}",
             app.Environment.EnvironmentName,
             db.Database.ProviderName);
     }

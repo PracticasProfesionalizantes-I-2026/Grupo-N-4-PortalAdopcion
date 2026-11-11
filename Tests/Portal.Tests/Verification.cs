@@ -134,7 +134,7 @@ public class PortalFactory : WebApplicationFactory<global::Program>
 
 public static class Cases
 {
-    public static readonly string[] Names = ["PasswordHash", "RegistroNormalizado", "RegistroDuplicado", "LoginIncorrecto", "PermisosCatalogo", "EnumInvalido", "Reserva", "DuplicadoActivo", "CancelarLibera", "AprobacionPrematura", "AprobacionNoAdopta", "Observacion", "EntrevistaPrueba", "SeguimientoDiarioUnico", "AlertaBloquea", "ValidacionFinalizacion", "BlacklistBloquea", "BlacklistRechazaActivo", "SancionEnPrueba", "HistorialUnico", "HistorialPrivado", "TransferenciaHistorial", "AbandonoIdempotente", "ConcurrenciaVersion", "IndiceReserva", "ReporteVacio", "PdfValido", "CsvSeguro", "HttpAnonimo", "HttpLoginPermisos", "HttpIdentidad", "HttpContratoEstricto", "HttpRegistroSeguro", "PersonalMatricula", "UltimoAdministrador", "EstadoInvalidaToken", "EventoMedicoPersistido", "IncidenteUrgente", "AuditoriaCambio", "CambioMascotaActivo", "CancelacionAjena", "LimiteVoluntario", "DniNoNumericoPersistencia", "EstadoCivilFueraDeListaPersistencia", "LockNoEjecutaFueraDeDev", "ResetDemoCondicionalDebug", "ConcurrenciaAsignacionVoluntario"];
+    public static readonly string[] Names = ["PasswordHash", "RegistroNormalizado", "RegistroDuplicado", "LoginIncorrecto", "PermisosCatalogo", "EnumInvalido", "Reserva", "DuplicadoActivo", "CancelarLibera", "AprobacionPrematura", "AprobacionNoAdopta", "Observacion", "EntrevistaPrueba", "SeguimientoDiarioUnico", "AlertaBloquea", "ValidacionFinalizacion", "BlacklistBloquea", "BlacklistRechazaActivo", "SancionEnPrueba", "HistorialUnico", "HistorialPrivado", "TransferenciaHistorial", "AbandonoIdempotente", "ConcurrenciaVersion", "IndiceReserva", "ReporteVacio", "PdfValido", "CsvSeguro", "HttpAnonimo", "HttpLoginPermisos", "HttpIdentidad", "HttpContratoEstricto", "HttpRegistroSeguro", "PersonalMatricula", "UltimoAdministrador", "EstadoInvalidaToken", "EventoMedicoPersistido", "IncidenteUrgente", "AuditoriaCambio", "CambioMascotaActivo", "CancelacionAjena", "LimiteVoluntario", "DniNoNumericoPersistencia", "EstadoCivilFueraDeListaPersistencia", "ResetDemoCondicionalDebug", "ConcurrenciaAsignacionVoluntario", "FiltrosCatalogo", "BlacklistLiberaContadorVoluntario", "ConcurrenciaRN16Real"];
     public static async Task Run(string name)
     {
         if (name.StartsWith("Http"))
@@ -356,11 +356,6 @@ public static class Cases
             case "EstadoCivilFueraDeListaPersistencia":
                 await t.Throws<ConflictException>(() => t.Repo.SaveAsync([new(new Adoptante { NombreCompleto = "Prueba EC", Email = "ec.check@demo.local", Dni = "30111222", Telefono = "3493000000", Direccion = "Casa", Edad = 30, EstadoCivil = "Viudo", DatosLaborales = "Empleado" }, true)], new() { Accion = "Prueba CHECK EstadoCivil" }));
                 break;
-            case "LockNoEjecutaFueraDeDev":
-                var isDev = false;
-                var isSqlite = true;
-                t.Check(!(isDev && isSqlite), "No debe ejecutarse fuera de Development");
-                break;
             case "ResetDemoCondicionalDebug":
                 var resetMethod = typeof(PortalAdopcion.API.Controllers.ControlController).GetMethod("ResetDemo");
 #if DEBUG
@@ -381,6 +376,75 @@ public static class Cases
                 t.Db.ChangeTracker.Clear();
                 await t.Throws<ConflictException>(() => s.ScheduleAsync(t.Admin, extraReq.Id, new(t.Clock.Now.AddMinutes(10), t.Volunteer.Id)));
                 break;
+            case "FiltrosCatalogo":
+            {
+                // Consultas reales contra SQLite (migraciones aplicadas): comprueba que el predicado se traduce a SQL y filtra bien.
+                // Seed demo: 6 mascotas hembra (3 perros, 3 gatos); 4 Disponibles, 1 Reservada (Tom), 1 EnPeriodoDePrueba (Mora).
+                t.Check((await s.PetsAsync()).Count == 6, "Sin filtros debe devolver las 6 mascotas");
+                t.Check((await s.PetsAsync(especie: EspecieEnum.Perro)).Count == 3, "Filtro por especie");
+                t.Check((await s.PetsAsync(estado: EstadoMascotaEnum.Disponible)).Count == 4, "Filtro por estado");
+                t.Check((await s.PetsAsync(estado: EstadoMascotaEnum.Disponible, especie: EspecieEnum.Gato)).Count == 2, "Estado + especie combinados");
+                t.Check((await s.PetsAsync(sexo: SexoEnum.Hembra)).Count == 6, "Filtro por sexo (hembras)");
+                t.Check((await s.PetsAsync(sexo: SexoEnum.Macho)).Count == 0, "Filtro por sexo (machos)");
+                t.Check((await s.PetsAsync(busqueda: "lun")).Select(x => x.Nombre).SequenceEqual(new[] { "Luna" }), "Búsqueda parcial por nombre");
+                t.Check((await s.PetsAsync(busqueda: "%")).Count == 0, "El comodín % debe buscarse literalmente, no como patrón");
+                t.Check((await s.PetsAsync(busqueda: "_")).Count == 0, "El comodín _ debe buscarse literalmente, no como patrón");
+                await s.CreatePetAsync(t.Admin, new("Bruno", EspecieEnum.Perro, "Labrador Retriever", 3, SexoEnum.Macho, null, null));
+                t.Db.ChangeTracker.Clear();
+                t.Check((await s.PetsAsync(busqueda: "labra")).Select(x => x.Nombre).SequenceEqual(new[] { "Bruno" }), "Búsqueda parcial por raza");
+                t.Check((await s.PetsAsync(sexo: SexoEnum.Macho)).Count == 1, "Filtro por sexo tras alta");
+                var ordenados = (await s.PetsAsync()).Select(x => x.Nombre).ToList();
+                t.Check(ordenados.SequenceEqual(ordenados.OrderBy(n => n)), "El catálogo debe venir ordenado por nombre");
+                await t.Throws<ValidationException>(() => s.PetsAsync(busqueda: new string('a', 200)));
+                var aInactivar = (await s.PetsAsync(estado: EstadoMascotaEnum.Disponible, especie: EspecieEnum.Gato)).First();
+                await s.ChangePetAsync(t.Admin, aInactivar.Id, new(EstadoMascotaEnum.Inactiva, "Baja de prueba"));
+                t.Db.ChangeTracker.Clear();
+                t.Check((await s.PetsAsync()).All(x => x.Id != aInactivar.Id), "Las inactivas no aparecen en el catálogo");
+                t.Check((await s.PetsAsync(estado: EstadoMascotaEnum.Inactiva)).Count == 0, "Inactiva no es consultable por el catálogo público");
+                break;
+            }
+            case "BlacklistLiberaContadorVoluntario":
+            {
+                t.Check((await t.Repo.FindAsync<Usuario>(t.Volunteer.Id))!.ProcesosActivos == 1, "El seed debe dejar un proceso activo asignado al voluntario");
+                await s.SaveBlacklistAsync(t.Admin, null, new(t.Trial.AdoptanteId, "Motivo", t.Clock.Now.AddMinutes(-1), t.Clock.Now.AddYears(1)));
+                t.Db.ChangeTracker.Clear();
+                t.Check((await t.Repo.FindAsync<SolicitudDeAdopcion>(t.Trial.Id))!.Estado == EstadoSolicitudEnum.Rechazada, "La sanción debe rechazar el proceso en prueba");
+                t.Check((await t.Repo.FindAsync<Usuario>(t.Volunteer.Id))!.ProcesosActivos == 0, "RN-16: el cupo del voluntario no se liberó");
+                break;
+            }
+            case "ConcurrenciaRN16Real":
+            {
+                // Carrera determinista sobre SQLite real: el servicio A lee al voluntario (1 de 2 cupos) y, ANTES de que guarde,
+                // el servicio B (otro DbContext) ocupa el último cupo. A debe fallar por el token Version y reportar RN-16,
+                // sin dejar el contador en 3 ni persistir cambios parciales.
+                await s.EvaluateAsync(t.Admin, t.Mature.Id, new(EstadoSolicitudEnum.Aprobada, null, "ONG"));
+                t.Db.ChangeTracker.Clear();
+                var rival = await t.Postulate();
+                t.Clock.Now = t.Clock.Now.AddDays(16);
+                await s.EvaluateAsync(t.Admin, rival.Id, new(EstadoSolicitudEnum.Aprobada, null, "ONG"));
+                t.Db.ChangeTracker.Clear();
+                await using var db2 = new PortalAdopcionDbContext(new DbContextOptionsBuilder<PortalAdopcionDbContext>().UseSqlite(t.Connection).Options);
+                var serviceB = new PortalService(new PortalRepository(db2), t.Clock);
+                var racing = new RacingRepository(t.Repo, t.Volunteer.Id, () => serviceB.ScheduleAsync(t.Admin, rival.Id, new(t.Clock.Now.AddMinutes(5), t.Volunteer.Id)));
+                var serviceA = new PortalService(racing, t.Clock);
+                string? mensaje = null;
+                try
+                {
+                    await serviceA.ScheduleAsync(t.Admin, t.Mature.Id, new(t.Clock.Now.AddMinutes(5), t.Volunteer.Id));
+                }
+                catch (ConflictException ex)
+                {
+                    mensaje = ex.Message;
+                }
+
+                t.Check(racing.Fired, "La carrera no se disparó: el test no comprueba nada");
+                t.Check(mensaje == "El voluntario ya tiene dos procesos activos asignados.", "A debía fallar con el error RN-16 y falló con: " + (mensaje ?? "ninguna excepción"));
+                t.Db.ChangeTracker.Clear();
+                t.Check((await t.Repo.FindAsync<Usuario>(t.Volunteer.Id))!.ProcesosActivos == 2, "El voluntario debe quedar con exactamente 2 procesos activos");
+                t.Check((await t.Repo.FindAsync<SolicitudDeAdopcion>(rival.Id))!.Estado == EstadoSolicitudEnum.EnEntrevista, "El proceso ganador debe quedar en entrevista");
+                t.Check((await t.Repo.FindAsync<SolicitudDeAdopcion>(t.Mature.Id))!.Estado == EstadoSolicitudEnum.Aprobada, "El proceso perdedor no debe cambiar (transacción atómica)");
+                break;
+            }
             default:
                 throw new Exception("Caso desconocido");
         }

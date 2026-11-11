@@ -56,10 +56,11 @@ negocio, quedando disponible para su posterior evaluación por personal autoriza
   2. El Sistema rechaza la creación del nuevo proceso.
   3. El Sistema devuelve un código **409 Conflict** con el motivo del rechazo. Fin del caso de uso.
 
-* **4a. El usuario pertenece a la blacklist (HTTP 409 Conflict):**
+* **4a. El usuario pertenece a la blacklist (HTTP 403 Forbidden):**
   1. Si en el Paso 4 se detecta una sanción vigente (**RN-01**).
-  2. El Sistema impide la creación del proceso.
-  3. El Sistema devuelve un código **409 Conflict** con el motivo del bloqueo. Fin del caso de uso.
+  2. El Sistema impide la creación del proceso (`AccessException`, traducida a 403 por `ExceptionHandlingMiddleware`).
+  3. El Sistema devuelve un código **403 Forbidden** con el motivo del bloqueo. Fin del caso de uso.
+  > **Decisión (alineada con CU-01 y CU-02):** 403 y no 409, porque el adoptante está autenticado pero su acceso a postular está denegado por una sanción administrada. El 409 se reserva para conflictos de estado de los datos (RN-04, mascota no disponible).
 
 * **5a. Error en la validación de datos (HTTP 400 Bad Request):**
   1. Si en el Paso 5 se detecta información inconsistente o incompleta.
@@ -95,13 +96,14 @@ negocio, quedando disponible para su posterior evaluación por personal autoriza
 | --- | --- | --- |
 | `201` | Created | Confirmación de persistencia exitosa del nuevo proceso en `Pendiente`. |
 | `400` | Bad Request | Fallo en la validación de datos recibidos. |
-| `409` | Conflict | Violación de invariantes (RN-01 blacklist, RN-04 proceso activo / mascota no disponible). |
+| `403` | Forbidden | Adoptante con sanción vigente en blacklist (RN-01). |
+| `409` | Conflict | Violación de invariantes de estado (RN-04 proceso activo / mascota no disponible). |
 | `500` | Internal Server Error | Error técnico no controlado durante la persistencia. |
 
 ### Nota: Validación vs. Verificación aplicada
 
 - **Validación (Presentación, → 400):** integridad y formato de los datos de la solicitud confirmada.
-- **Verificación (Negocio, → 409):** disponibilidad de la mascota (**RN-04/RN-09**), ausencia de procesos activos (**RN-04**) y blacklist (**RN-01**). Auditoría (**RN-08**) y código de confirmación (**RN-07**) emitidos por el Sistema. La notificación fallida no afecta la persistencia del proceso (9a).
+- **Verificación (Negocio, → 403/409):** blacklist (**RN-01** → `AccessException` → 403); disponibilidad de la mascota (**RN-04/RN-09** → 409) y ausencia de procesos activos (**RN-04** → 409). Auditoría (**RN-08**) y código de confirmación (**RN-07**) emitidos por el Sistema. La notificación fallida no afecta la persistencia del proceso (9a).
 
 ### Matriz de trazabilidad CU-05 → Test
 
@@ -110,7 +112,7 @@ negocio, quedando disponible para su posterior evaluación por personal autoriza
 | Flujo principal | `201 Created` | `SolicitudService_CrearProceso_RetornaProcesoPendiente` | `POST /api/solicitudes_CreaProceso_Returns201` |
 | 2a. Mascota no disponible | `409 Conflict` | `SolicitudService_CrearProceso_ConMascotaNoDisponible_Cancela` | `POST /api/solicitudes_CreaProceso_ConMascotaNoDisponible_Returns409` |
 | 3a. Proceso activo | `409 Conflict` | `SolicitudService_CrearProceso_ConProcesoActivo_Rechaza` | `POST /api/solicitudes_CreaProceso_ConProcesoActivo_Returns409` |
-| 4a. Blacklist | `409 Conflict` | `SolicitudService_CrearProceso_ConBlacklist_Impedir` | `POST /api/solicitudes_CreaProceso_ConBlacklist_Returns409` |
+| 4a. Blacklist | `403 Forbidden` | `SolicitudService_CrearProceso_ConBlacklist_Impedir` | `POST /api/solicitudes_CreaProceso_ConBlacklist_Returns403` |
 | 5a. Error de validación | `400 Bad Request` | `SolicitudService_CrearProceso_ConDatosInvalidos_LanzaValidationException` | `POST /api/solicitudes_CreaProceso_ConDatosInvalidos_Returns400` |
 | 9a. Error en notificación | `200` (continúa) | `NotificacionService_ErrorAlNotificar_RegistraIncidente` | `POST /api/solicitudes_CreaProceso_ConErrorNotificacion_Returns201` |
 

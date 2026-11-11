@@ -520,20 +520,6 @@ public class BusinessRulesUnitTests
         await Assert.ThrowsAsync<ConflictException>(action);
     }
 
-    [Theory]
-    [InlineData("Production", true, false)]
-    [InlineData("Testing", true, false)]
-    [InlineData("Development", false, false)]
-    [InlineData("Development", true, true)]
-    public void LockCleanup_WhenOutsideDevelopmentOrNotSqlite_ConditionEvaluatesCorrectly(string envName, bool isSqlite, bool expected)
-    {
-        // Act
-        var shouldExecute = (envName == "Development") && isSqlite;
-
-        // Assert
-        Assert.Equal(expected, shouldExecute);
-    }
-
     [Fact]
     public void ResetDemoEndpoint_ConfigurationGuards_CheckedByBuildConfiguration()
     {
@@ -549,25 +535,23 @@ public class BusinessRulesUnitTests
     }
 
     [Fact]
-    public async Task Schedule_WhenConcurrencyConflictOnVolunteer_TranslatesToRN16()
+    public async Task SaveBlacklist_WhenActiveProcessHasVolunteer_ReleasesVolunteerSlot()
     {
-        // Arrange
+        // Arrange: proceso en prueba con voluntario asignado (el Harness suma 1 a ProcesosActivos).
         var h = new Harness();
         var admin = h.AddUser("Administrador");
         var volunteer = h.AddUser("Voluntario");
-        var pet = h.AddMascota(EstadoMascotaEnum.Reservada);
-        var request = h.AddSolicitud(pet.Id, Guid.NewGuid(), EstadoSolicitudEnum.Aprobada);
-        var requestDto = new EntrevistaDTO(h.Clock.Now.AddDays(1), volunteer.Id);
-
-        // Simulamos conflicto de concurrencia optimista al persistir cambios
-        h.Repo.Setup(r => r.SaveAsync(It.IsAny<IEnumerable<Cambio>>(), It.IsAny<EventoAuditoria>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new ConflictException("Los datos cambiaron. Actualizá la consulta y reintentá."));
+        var profile = h.AddAdoptante();
+        var pet = h.AddMascota(EstadoMascotaEnum.EnPeriodoDePrueba);
+        var request = h.AddSolicitud(pet.Id, profile.Id, EstadoSolicitudEnum.EnPeriodoDePrueba, voluntarioId: volunteer.Id, inicioPrueba: h.Clock.Now);
+        var volunteerEntity = h.Store.OfType<Usuario>().Single(u => u.Id == volunteer.Id);
+        Assert.Equal(1, volunteerEntity.ProcesosActivos);
 
         // Act
-        var action = () => h.Service.ScheduleAsync(admin, request.Id, requestDto);
+        await h.Service.SaveBlacklistAsync(admin, null, new BlacklistDTO(profile.Id, "Maltrato", h.Clock.Now.AddDays(-1), h.Clock.Now.AddDays(30)));
 
-        // Assert: Debe traducirse al error de negocio específico RN-16
-        var ex = await Assert.ThrowsAsync<ConflictException>(action);
-        Assert.Equal("El voluntario ya tiene dos procesos activos asignados.", ex.Message);
+        // Assert: RN-16 - el cupo del voluntario se libera junto con el rechazo del proceso.
+        Assert.Equal(EstadoSolicitudEnum.Rechazada, request.Estado);
+        Assert.Equal(0, volunteerEntity.ProcesosActivos);
     }
 }

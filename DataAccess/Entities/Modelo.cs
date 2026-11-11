@@ -20,8 +20,9 @@ public class Usuario : Registro
     // SECURITY: Control de concurrencia optimista para RN-16 (máximo de procesos activos por voluntario).
     public int ProcesosActivos { get; set; }
 
-    // SECURITY: Atributo [Timestamp] para compatibilidad con proveedores que usan RowVersion binario (ej. SQL Server).
-    // Para SQLite, el equivalente funcional activo del proyecto es el campo Version (long) heredado de Registro.
+    // NOTA: [Timestamp] solo tiene efecto en proveedores que generan rowversion (ej. SQL Server). SQLite NO lo genera:
+    // aquí la columna queda siempre NULL y no protege nada. El control de concurrencia real de RN-16 es el campo
+    // Version (long, IsConcurrencyToken) heredado de Registro, que PortalRepository.SaveAsync incrementa y comprueba.
     [System.ComponentModel.DataAnnotations.Timestamp]
     public byte[]? RowVersion { get; set; }
 }

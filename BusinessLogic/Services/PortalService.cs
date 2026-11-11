@@ -299,10 +299,14 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
 
         if (!string.IsNullOrWhiteSpace(busqueda))
         {
-            var pattern = $"%{busqueda.Trim()}%";
+            var term = busqueda.Trim();
+            if (term.Length > BusinessRules.MaxLongitudNombre)
+                throw new ValidationException($"Búsqueda: hasta {BusinessRules.MaxLongitudNombre} caracteres.");
+            // SECURITY: se escapan los comodines LIKE (% _ \) para que el texto del usuario se busque literalmente y no como patrón.
+            var pattern = "%" + term.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
             predicate = PortalAdopcion.BusinessLogic.Common.PredicateBuilder.And(predicate, x =>
-                EF.Functions.Like(x.Nombre, pattern) ||
-                (x.Raza != null && EF.Functions.Like(x.Raza, pattern)));
+                EF.Functions.Like(x.Nombre, pattern, "\\") ||
+                (x.Raza != null && EF.Functions.Like(x.Raza, pattern, "\\")));
         }
 
         var pets = await repo.ListAsync(predicate, ct);
@@ -397,6 +401,7 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             var activas = await repo.ListAsync<SolicitudDeAdopcion>(x => x.AdoptanteId == s.AdoptanteId && EstadosActivos.Contains(x.Estado));
             var mascotaIds = activas.Select(r => r.MascotaId).ToList();
             var pets = (await repo.ListAsync<Mascota>(m => mascotaIds.Contains(m.Id))).ToDictionary(m => m.Id);
+            var released = new Dictionary<Guid, Usuario>();
             foreach (var request in activas)
             {
                 request.Estado = EstadoSolicitudEnum.Rechazada;
@@ -406,7 +411,18 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
                 pet.Estado = EstadoMascotaEnum.Disponible;
                 changes.Add(new Cambio(request));
                 changes.Add(new Cambio(pet));
+                // SECURITY: RN-16 - un proceso rechazado que ya tenía voluntario (EnEntrevista/EnPeriodoDePrueba) debe liberar su cupo;
+                // sin esto ProcesosActivos quedaba inflado y el voluntario se bloqueaba de forma permanente.
+                if (request.VoluntarioId is Guid volunteerId)
+                {
+                    if (!released.TryGetValue(volunteerId, out var assigned))
+                        released[volunteerId] = assigned = await Find<Usuario>(volunteerId);
+                    if (assigned.ProcesosActivos > 0)
+                        assigned.ProcesosActivos--;
+                }
             }
+
+            changes.AddRange(released.Values.Select(v => new Cambio(v)));
         }
 
         await Save(a, "CU-01 Sanción", s.Id, s.Motivo, changes.ToArray());
@@ -569,7 +585,7 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
             throw new ValidationException("La entrevista no puede programarse en el pasado.");
 
         // SECURITY: RN-16 - Control de concurrencia optimista para límite de procesos activos por voluntario.
-        // Se valida ProcesosActivos en memoria y se incrementa bajo control de versión/RowVersion.
+        // Se valida ProcesosActivos y se incrementa bajo el token de concurrencia Version (heredado de Registro): en SQLite RowVersion no se genera, por lo que no protege.
         if (volunteer.ProcesosActivos >= BusinessRules.MaxProcesosActivosPorVoluntario)
             throw new ConflictException("El voluntario ya tiene dos procesos activos asignados.");
 
@@ -596,15 +612,15 @@ public class PortalService(IPortalRepository repo, TimeProvider clock) : IPortal
                 new Cambio(volunteer),
                 Notice(id, "Entrevista asignada", user: d.VoluntarioId));
         }
-        catch (DbUpdateConcurrencyException)
+        catch (ConflictException)
         {
-            // SECURITY: RN-16 - Colisión de concurrencia optimista al guardar cambios en voluntario traducida a error RN-16.
-            throw new ConflictException("El voluntario ya tiene dos procesos activos asignados.");
-        }
-        catch (ConflictException ex) when (ex.Message.Contains("cambiaron"))
-        {
-            // SECURITY: RN-16 - Si el repositorio traduce DbUpdateConcurrencyException a ConflictException general.
-            throw new ConflictException("El voluntario ya tiene dos procesos activos asignados.");
+            // SECURITY: RN-16 - El repositorio ya tradujo DbUpdateConcurrencyException (token Version) a ConflictException.
+            // Se relee el voluntario: si otro proceso ocupó el último cupo el error es RN-16; si el conflicto fue en otra
+            // entidad (solicitud, mascota) se propaga el conflicto original en lugar de enmascararlo como RN-16.
+            var current = await repo.FindAsync<Usuario>(d.VoluntarioId);
+            if (current is not null && current.ProcesosActivos >= BusinessRules.MaxProcesosActivosPorVoluntario)
+                throw new ConflictException("El voluntario ya tiene dos procesos activos asignados.");
+            throw;
         }
 
         return e.ToDto();
