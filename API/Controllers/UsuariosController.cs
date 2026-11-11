@@ -7,7 +7,7 @@ using PortalAdopcion.DataAccess.Repositories;
 using PortalAdopcion.Shared.DTOs;
 
 [ApiController, Route("api/usuarios"), Authorize(Roles = "Administrador")]
-public class UsuariosController(IPortalService s) : PortalController
+public class UsuariosController(IUsuarioAuthService s) : PortalController
 {
     [HttpGet]
     public async Task<IActionResult> List() => Ok(await s.UsersAsync(Actor));

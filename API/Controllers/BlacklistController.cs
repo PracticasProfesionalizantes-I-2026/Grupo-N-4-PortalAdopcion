@@ -8,7 +8,7 @@ using PortalAdopcion.DataAccess.Repositories;
 using PortalAdopcion.Shared.DTOs;
 
 [ApiController, Route("api/blacklists"), Authorize(Roles = "Administrador")]
-public class BlacklistController(IPortalService s) : PortalController
+public class BlacklistController(IControlOperativoService s) : PortalController
 {
     [HttpGet]
     public async Task<IActionResult> List() => Ok(await s.BlacklistAsync(Actor));

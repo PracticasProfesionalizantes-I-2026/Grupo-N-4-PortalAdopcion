@@ -9,7 +9,7 @@ using PortalAdopcion.Shared.DTOs;
 using PortalAdopcion.Shared.Enums;
 
 [ApiController, Route("api/mascotas")]
-public class MascotasController(IPortalService s) : PortalController
+public class MascotasController(IMascotaService s, IClinicaVeterinariaService clinica) : PortalController
 {
     [HttpGet, OutputCache(PolicyName = "Catalogo")]
     public async Task<IActionResult> List(
@@ -39,10 +39,10 @@ public class MascotasController(IPortalService s) : PortalController
     }
 
     [HttpGet("{id:guid}/historial"), Authorize]
-    public async Task<IActionResult> History(Guid id) => Ok(await s.HistoryAsync(Actor, id));
+    public async Task<IActionResult> History(Guid id) => Ok(await clinica.HistoryAsync(Actor, id));
     [HttpPost("{id:guid}/historial"), Authorize(Roles = "Veterinario")]
-    public async Task<IActionResult> Initial(Guid id, ClinicaDTO d) => StatusCode(201, await s.CreateHistoryAsync(Actor, id, d));
+    public async Task<IActionResult> Initial(Guid id, ClinicaDTO d) => StatusCode(201, await clinica.CreateHistoryAsync(Actor, id, d));
     [HttpPost("{id:guid}/eventos-medicos"), Authorize(Roles = "Veterinario")]
-    public async Task<IActionResult> Event(Guid id, EventoMedicoDTO d) => StatusCode(201, await s.MedicalEventAsync(Actor, id, d));
+    public async Task<IActionResult> Event(Guid id, EventoMedicoDTO d) => StatusCode(201, await clinica.MedicalEventAsync(Actor, id, d));
 }
 

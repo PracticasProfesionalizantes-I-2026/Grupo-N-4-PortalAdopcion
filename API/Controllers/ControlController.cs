@@ -12,7 +12,7 @@ using PortalAdopcion.Shared.Exceptions;
 
 [ApiController, Authorize, Route("api")]
 #pragma warning disable CS9113 // Parámetros utilizados en ResetDemo (activo únicamente en compilaciones DEBUG)
-public class ControlController(IPortalService s, IWebHostEnvironment env, IConfiguration config, IPortalRepository repo, IOutputCacheStore cache) : PortalController
+public class ControlController(IControlOperativoService s, IAdopcionWorkflowService adopciones, IWebHostEnvironment env, IConfiguration config, IPortalRepository repo, IOutputCacheStore cache) : PortalController
 #pragma warning restore CS9113
 {
     [HttpGet("incidentes")]
@@ -28,7 +28,7 @@ public class ControlController(IPortalService s, IWebHostEnvironment env, IConfi
     {
         if (!env.IsDevelopment())
             return NotFound();
-        return Ok(new { procesados = await s.AbandonAsync() });
+        return Ok(new { procesados = await adopciones.AbandonAsync() });
     }
 
     // Reinicia el entorno demo (borra todos los datos y vuelve a sembrar los ejemplos).

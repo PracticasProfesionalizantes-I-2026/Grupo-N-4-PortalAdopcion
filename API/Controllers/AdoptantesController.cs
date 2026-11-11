@@ -7,7 +7,7 @@ using PortalAdopcion.DataAccess.Repositories;
 using PortalAdopcion.Shared.DTOs;
 
 [ApiController, Route("api/adoptantes"), Authorize]
-public class AdoptantesController(IPortalService s) : PortalController
+public class AdoptantesController(IUsuarioAuthService s) : PortalController
 {
     [HttpGet]
     public async Task<IActionResult> List() => Ok(await s.ProfilesAsync(Actor));

@@ -7,7 +7,7 @@ using PortalAdopcion.DataAccess.Repositories;
 using PortalAdopcion.Shared.DTOs;
 
 [ApiController, Route("api/solicitudes"), Authorize]
-public class SolicitudesController(IPortalService s) : PortalController
+public class SolicitudesController(IAdopcionWorkflowService s, IClinicaVeterinariaService clinica) : PortalController
 {
     [HttpGet]
     public async Task<IActionResult> List() => Ok(await s.RequestsAsync(Actor));
@@ -42,7 +42,7 @@ public class SolicitudesController(IPortalService s) : PortalController
     [HttpPost("{id:guid}/seguimientos"), Authorize(Roles = "Administrador,Voluntario")]
     public async Task<IActionResult> Followup(Guid id, SeguimientoDTO d) => StatusCode(201, await s.FollowupAsync(Actor, id, d));
     [HttpPost("{id:guid}/validacion-veterinaria"), Authorize(Roles = "Veterinario")]
-    public async Task<IActionResult> Validate(Guid id, ValidacionClinicaDTO d) => Ok(await s.ValidateClinicalAsync(Actor, id, d.Motivo));
+    public async Task<IActionResult> Validate(Guid id, ValidacionClinicaDTO d) => Ok(await clinica.ValidateClinicalAsync(Actor, id, d.Motivo));
     [HttpPost("{id:guid}/finalizacion"), Authorize(Roles = "Administrador,Voluntario")]
     public async Task<IActionResult> FinalizeAdoption(Guid id, MotivoDTO d) => Ok(await s.FinalizeAsync(Actor, id, d.Motivo));
 }

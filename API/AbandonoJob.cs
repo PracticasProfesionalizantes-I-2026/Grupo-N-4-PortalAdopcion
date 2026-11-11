@@ -10,7 +10,7 @@ public class AbandonoJob(IServiceScopeFactory scopes, ILogger<AbandonoJob> logge
             try
             {
                 using var s = scopes.CreateScope();
-                var count = await s.ServiceProvider.GetRequiredService<IPortalService>().AbandonAsync();
+                var count = await s.ServiceProvider.GetRequiredService<IAdopcionWorkflowService>().AbandonAsync();
                 logger.LogInformation("Abandonos procesados: {Count}", count);
             }
             catch (Exception ex)when (!stoppingToken.IsCancellationRequested)

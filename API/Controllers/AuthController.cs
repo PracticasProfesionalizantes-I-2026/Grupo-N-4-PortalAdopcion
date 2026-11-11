@@ -7,7 +7,7 @@ using PortalAdopcion.DataAccess.Repositories;
 using PortalAdopcion.Shared.DTOs;
 
 [ApiController, Route("api/auth")]
-public class AuthController(IPortalService s, TokenIssuer tokens) : PortalController
+public class AuthController(IUsuarioAuthService s, TokenIssuer tokens) : PortalController
 {
     [HttpPost("registro"), AllowAnonymous]
     public async Task<IActionResult> Register(RegistroUsuarioDTO d) => StatusCode(201, await s.RegisterAsync(d));

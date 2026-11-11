@@ -32,7 +32,12 @@ var csb = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(builder.Config
 };
 builder.Services.AddDbContext<PortalAdopcionDbContext>(o => o.UseSqlite(csb.ConnectionString));
 builder.Services.AddScoped<IPortalRepository, PortalRepository>();
-builder.Services.AddScoped<IPortalService, PortalService>();
+// REFACTOR: PortalService se dividió en servicios de dominio con responsabilidad única (SRP).
+builder.Services.AddScoped<IUsuarioAuthService, UsuarioAuthService>();
+builder.Services.AddScoped<IMascotaService, MascotaService>();
+builder.Services.AddScoped<IAdopcionWorkflowService, AdopcionWorkflowService>();
+builder.Services.AddScoped<IClinicaVeterinariaService, ClinicaVeterinariaService>();
+builder.Services.AddScoped<IControlOperativoService, ControlOperativoService>();
 
 // --- Configuración de Correo (MailKit / SmtpOptions) ---
 builder.Services.Configure<PortalAdopcion.API.Options.SmtpOptions>(builder.Configuration.GetSection(PortalAdopcion.API.Options.SmtpOptions.SectionName));
