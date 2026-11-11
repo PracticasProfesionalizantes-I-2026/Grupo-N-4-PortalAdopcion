@@ -127,11 +127,11 @@ public class CorreoJobTests
             Client.Setup(c => c.DisconnectAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
                 .Callback(() => Connected = false)
                 .Returns(Task.CompletedTask);
-            Client.Setup(c => c.SendAsync(It.IsAny<MimeMessage>(), It.IsAny<CancellationToken>(), It.IsAny<ITransferProgress>()))
-                .Returns((MimeMessage m, CancellationToken _, ITransferProgress __) =>
+            Client.Setup(c => c.SendAsync(It.IsAny<ISendRequest>(), It.IsAny<CancellationToken>()))
+                .Returns((ISendRequest request, CancellationToken _) =>
                 {
                     Sends++;
-                    var ex = fail?.Invoke(m, Sends);
+                    var ex = fail?.Invoke(request.Message, Sends);
                     if (ex is not null)
                     {
                         // Un error de red real deja el cliente desconectado: el job debe reconectar antes de reintentar.
@@ -140,7 +140,8 @@ public class CorreoJobTests
                         throw ex;
                     }
 
-                    return Task.FromResult("OK");
+                    // CorreoJob no necesita inspeccionar el SendResult; el mock solo simula un envío aceptado.
+                    return Task.FromResult<SendResult>(null!);
                 });
             var factory = new Mock<ISmtpClientFactory>();
             factory.Setup(f => f.CreateClient()).Returns(Client.Object);

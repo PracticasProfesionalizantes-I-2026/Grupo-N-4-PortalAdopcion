@@ -3,10 +3,9 @@
 > Especificación elaborada siguiendo la guía
 > `GUIA-Especificacion-Casos-de-Uso.md` (sección 3).
 > Reglas de negocio referenciadas con la numeración **unificada RN-01..RN-17**.
-> **Corrección de la precondición contradictoria** de la versión original ("la
-> ficha clínica debe existir"): este caso de uso **crea** el historial, por lo que
-> la precondición se corrige según P4 (opción b: el historial nace con el primer
-> registro clínico). La unicidad del historial no posee una RN dedicada en el
+> **Precondición:** este caso de uso **abre** el historial clínico: la mascota debe
+> estar registrada y no poseer historial previo (según P4, opción b: el historial
+> nace con el primer registro clínico). La unicidad del historial no posee una RN dedicada en el
 > catálogo RN-01..RN-17; se documenta como **invariante de dominio** con su nota
 > P4 correspondiente.
 
@@ -16,7 +15,7 @@
 | **Nombre** | Registrar Historial Clínico Inicial |
 | **Actor Principal** | Veterinario |
 | **Alcance / Nivel** | Sistema; meta de usuario |
-| **Stakeholders e intereses** | Veterinario → dejar constancia oficial del estado de salud inicial; ONG / Mascota → contar con la ficha clínica para el seguimiento sanitario; Administrador (secundario) → consultar el historial una vez abierto; Administración → trazabilidad y auditoría clínica |
+| **Stakeholders e intereses** | Veterinario → dejar constancia oficial del estado de salud inicial; ONG / Mascota → contar con la ficha clínica para el seguimiento sanitario; Administrador (secundario) → habilitar el registro cuando corresponda; Administración → trazabilidad y auditoría clínica |
 | **Disparador (Trigger)** | El veterinario solicita registrar el historial clínico de una mascota registrada en el sistema |
 | **Prioridad / Frecuencia** | Media; media frecuencia (al ingreso de cada mascota a la ONG) |
 | **Reglas de negocio relacionadas** | Unicidad de historial por mascota (invariante de dominio, nota P4); RN-08 (auditoría); RN-09 (la mascota debe tener un estado válido) |
@@ -34,10 +33,10 @@ sanitario y sirviendo como registro oficial de su condición de salud.
 3. Debe existir disponibilidad del servicio de almacenamiento.
 
 ### 3. FLUJO PRINCIPAL (Camino Feliz - HTTP 201)
-1. El Actor envía una petición al endpoint `POST /api/mascotas/{id}/historial` con un JSON que contiene la ficha clínica inicial (peso, estado general de salud, vacunas aplicadas, antecedentes médicos relevantes y si la mascota está esterilizada).
+1. El Actor envía una petición al endpoint `POST /api/mascotas/{id}/historial` con un JSON que contiene la ficha clínica inicial (estado general de salud, peso, edad estimada, vacunas aplicadas, desparasitación, esterilización, enfermedades diagnosticadas, alergias conocidas y antecedentes médicos relevantes).
 2. La **Capa de Presentación** (`HistorialClinicoController`) valida que el JSON sea estructuralmente correcto y que los campos obligatorios estén presentes.
 3. La **Capa de Negocio** (`HistorialClinicoService`) verifica que la mascota exista y tenga un estado válido (**RN-09**), y que no posea un historial previo (invariante de unicidad).
-4. La **Capa de Persistencia** genera un identificador único, asocia el historial a la mascota, registra fecha/hora de creación y veterinario responsable, y crea en la misma transacción el primer evento médico de tipo `Inicial` (copia del estado general y los antecedentes).
+4. La **Capa de Persistencia** genera un identificador único, asocia el historial a la mascota y registra fecha/hora de creación y usuario responsable.
 5. El Sistema registra la operación en auditoría (**RN-08**).
 6. El Sistema devuelve un código **201 Created** con el historial clínico creado.
 
@@ -66,7 +65,7 @@ sanitario y sirviendo como registro oficial de su condición de salud.
 * **3b. Historial clínico ya existente (HTTP 409 Conflict):**
   1. Si en el Paso 3 la mascota ya posee un historial clínico, violando el invariante de unicidad.
   2. El Sistema frena la ejecución en la **Capa de Negocio**.
-  3. El Sistema devuelve un código **409 Conflict**; el veterinario puede consultar el historial existente (`GET /api/mascotas/{id}/historial`) y agregarle eventos médicos (CU-10). Fin del caso de uso.
+  3. El Sistema devuelve un código **409 Conflict** y ofrece consultar el historial existente (CU-10). Fin del caso de uso.
 
 * **4a. Error interno en la persistencia (HTTP 500 Internal Server Error):**
   1. Si en el Paso 4 la **Capa de Persistencia** no puede guardar el historial.
@@ -75,11 +74,11 @@ sanitario y sirviendo como registro oficial de su condición de salud.
 
 ### 5. SUB-VARIACIONES (opcional)
 1. **Cancelación del registro:** el veterinario puede cancelar el registro antes de confirmarlo; el Sistema descarta la información temporal y no registra el historial (no es un error).
-2. **Actor secundario:** el Administrador no abre historiales (la operación es exclusiva del rol Veterinario); sí puede consultarlos con `GET /api/mascotas/{id}/historial`.
+2. **Actor secundario:** un Administrador con permisos clínicos puede ejecutar el caso de uso con las mismas validaciones.
 3. El historial queda disponible para el registro de eventos médicos posteriores (**CU-10**).
 
 ### 6. POSTCONDICIONES
-1. Se crea un historial clínico único, persistente y asociado a la mascota correspondiente, junto con su primer evento médico `Inicial`.
+1. Se crea un historial clínico único, persistente y asociado a la mascota correspondiente.
 2. El historial queda disponible para registrar tratamientos, controles, vacunaciones y observaciones posteriores (CU-10).
 3. La operación queda registrada en auditoría con usuario responsable y fecha/hora (**RN-08**).
 
